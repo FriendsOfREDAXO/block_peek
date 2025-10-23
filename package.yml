@@ -1,9 +1,8 @@
 package: block_peek
-name: BlockPeek
 version: '1.0.0-beta'
-author: ynamite
+license: MIT
+author: Friends Of REDAXO, Yves Torres
 supportpage: https://github.com/FriendsOfREDAXO/block_peek
-
 perm: block_peek[]
 
 page:
