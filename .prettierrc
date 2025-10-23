@@ -1,0 +1,9 @@
+{
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "none",
+  "plugins": [
+    "prettier-plugin-css-order",
+    "prettier-plugin-organize-attributes"
+  ]
+}

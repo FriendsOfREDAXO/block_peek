@@ -1,0 +1,38 @@
+block_peek_title = BlockPeek
+block_peek_description = Modul-Frontend-Vorschau für Redaxo
+
+# Redaxo Permissions
+perm_general_block_peek[] = BlockPeek
+
+# Navigation
+block_peek_settings = Konfiguration
+block_peek_docs = Read Me
+block_peek_save = Speichern
+block_peek_cancel = Abbrechen
+
+# Configuration
+block_peek_template = BlockPeek Template
+block_peek_template_notice = <strong>Hinweis:</strong> Der Platzhalter <b>{{block_peek_content}}</b> ist Voraussetzung, um den eigentlichen Modul-Inhalt anzuzeigen. <br />Kann ansonsten wie ein normales Template genutzt werden. <br />Standard Template:
+
+block_peek_assets_head = Zusätzliche Inhalte für <head />
+block_peek_assets_head_notice = <strong>Hinweis:</strong> Optional. Wird als letzter Inhalt vor dem abschliessendend &lt;head /&gt; Tag eingefügt
+
+block_peek_assets_body = Zusätzliche Inhalte für <body />
+block_peek_assets_body_notice = <strong>Hinweis:</strong> Optional. Wird als letzter Inhalt vor dem abschliessendend &lt;body /&gt; Tag eingefügt
+
+block_peek_cache = Cache verwenden
+block_peek_cache_auto = automatisch
+block_peek_cache_active = aktiviert
+block_peek_cache_inactive = deaktiviert
+block_peek_cache_notice = <strong>automatisch:</strong> Cache-Aktivierung basiert auf Redaxo Debug Modus Status (Debug Modus an = Cache aus)<br /><strong>aktiviert:</strong> Aktiv, unabhängig von Debug Modus<br /><strong>deaktiviert:</strong> Inaktiv, unabhängig von Debug Modus
+block_peek_cache_ttl = Cache TTL (in Sekunden)
+block_peek_cache_ttl_notice = <strong>Standard:</strong> 3600 Sekunden (1 Stunde)
+
+block_peek_misc = Sonstiges
+
+block_peek_inactive = BlockPeek deaktivieren?
+block_peek_inactive_option = ja
+
+block_peek_iframe_min_height = iFrame Mindesthöhe
+block_peek_iframe_max_height = iFrame Maximalhöhe
+block_peek_iframe_zoom_factor = iFrame Zoom-Stufe

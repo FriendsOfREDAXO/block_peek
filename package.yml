@@ -1,0 +1,29 @@
+package: block_peek
+name: BlockPeek
+version: '1.0.0-beta'
+author: ynamite
+supportpage: https://github.com/FriendsOfREDAXO/block_peek
+
+perm: block_peek[]
+
+page:
+  title: 'translate:block_peek_title'
+  icon: rex-icon fa-vr-cardboard
+  subpages:
+    settings:
+      title: 'translate:block_peek_settings'
+      icon: rex-icon fa-cog
+    docs:
+      title: 'translate:block_peek_docs'
+      subPath: README.md
+      icon: rex-icon fa-book
+      itemclass: pull-right
+
+requires:
+  redaxo: '^5.17.0'
+  php:
+    version: '>=8.0.3'
+
+installer_ignore:
+  - node_modules
+  - assets-src
