@@ -1,5 +1,5 @@
 package: block_peek
-version: '1.0.2-beta'
+version: '1.0.3-beta'
 license: MIT
 author: Friends Of REDAXO, Yves Torres
 supportpage: https://github.com/FriendsOfREDAXO/block_peek
