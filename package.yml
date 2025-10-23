@@ -26,3 +26,4 @@ requires:
 installer_ignore:
   - node_modules
   - assets-src
+  - block_peek.zip
