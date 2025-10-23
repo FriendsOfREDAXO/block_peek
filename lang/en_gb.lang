@@ -1,0 +1,41 @@
+block_peek_title = BlockPeek
+block_peek_description = Module frontend preview for Redaxo
+
+# Redaxo Permissions
+perm_general_block_peek[] = BlockPeek
+
+# Navigation
+block_peek_settings = Configuration
+block_peek_docs = Read Me
+block_peek_save = Save
+block_peek_cancel = Cancel
+
+# Configuration
+block_peek_template = BlockPeek Template
+block_peek_template_notice = <strong>Note:</strong> The placeholder <b>{{block_peek_content}}</b> is required to display the actual module content. <br />Can otherwise be used like a normal template. <br />Default template:
+
+block_peek_assets_head = Additional content for <head />
+block_peek_assets_head_notice = <strong>Note:</strong> Optional. Will be inserted as the last content before the closing &lt;head /&gt; tag
+
+block_peek_assets_body = Additional content for <body />
+block_peek_assets_body_notice = <strong>Note:</strong> Optional. Will be inserted as the last content before the closing &lt;body /&gt; tag
+
+block_peek_cache = Use cache
+block_peek_cache_auto = automatic
+block_peek_cache_active = enabled
+block_peek_cache_inactive = disabled
+block_peek_cache_notice = <strong>automatic:</strong> Cache activation is based on Redaxo debug mode status (debug mode on = cache off)<br /><strong>enabled:</strong> Active, independent of debug mode<br /><strong>disabled:</strong> Inactive, independent of debug mode
+block_peek_cache_ttl = Cache TTL (in seconds)
+block_peek_cache_ttl_notice = <strong>Default:</strong> 3600 seconds (1 hour)
+
+block_peek_misc = Miscellaneous
+
+block_peek_inactive = Disable BlockPeek?
+block_peek_inactive_option = yes
+
+block_peek_iframe_min_height = iFrame minimum height
+block_peek_iframe_max_height = iFrame maximum height
+block_peek_iframe_zoom_factor = iFrame zoom level
+
+block_peek_force_fe = Force frontend context
+block_peek_force_fe_option = yes
