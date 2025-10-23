@@ -111,6 +111,7 @@ class Generate extends rex_api_function
     $html = $context->getSlice($this->sliceId);
 
     $template = $this->getTemplate($context);
+    $template = $context->replaceCommonVars($template);
 
     $html = str_replace('{{block_peek_content}}', $html, $template);
     $html = rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_OUTPUT', $html, [
@@ -130,7 +131,7 @@ class Generate extends rex_api_function
     $langCode = $clang ? $clang->getCode() : 'en';
 
     $template = $this->addon->getConfig('template', '{{block_peek_content}}');
-    $template = rex_var::parse($template, rex_var::ENV_FRONTEND, 'template', $context);
+    $template = rex_var::parse($template, rex_var::ENV_FRONTEND, 'template');
     $maxHeight = (int) $this->addon->getConfig('iframe_max_height') ?: 10000;
     $headAssets = $this->addon->getConfig('assets_head', '');
     $bodyAssets = $this->addon->getConfig('assets_body', '');
