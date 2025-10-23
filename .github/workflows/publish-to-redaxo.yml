@@ -15,7 +15,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: "8.2"
           tools: composer
 
       - name: Install Composer dependencies
@@ -24,7 +24,7 @@ jobs:
       - name: Create release archive
         run: |
           # Create ZIP file directly, excluding unwanted files
-          zip -r rexql.zip . \
+          zip -r ${{ github.event.repository.name }}.zip . \
             -x "*to-do.md" \
             -x "*.git*" \
             -x "*node_modules*" \
@@ -40,7 +40,7 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
-          files: rexql.zip
+          files: ${{ github.event.repository.name }}.zip
           name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
 
       - uses: FriendsOfREDAXO/installer-action@v1
