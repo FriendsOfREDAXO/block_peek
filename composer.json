@@ -1,0 +1,18 @@
+{
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "classmap": [
+      "lib/"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "platform": {
+      "php": "8.3.24"
+    },
+    "platform-check": false
+  }
+}
