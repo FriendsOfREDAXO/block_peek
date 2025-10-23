@@ -36,3 +36,6 @@ block_peek_inactive_option = ja
 block_peek_iframe_min_height = iFrame Mindesthöhe
 block_peek_iframe_max_height = iFrame Maximalhöhe
 block_peek_iframe_zoom_factor = iFrame Zoom-Stufe
+
+block_peek_force_fe = Frontend-Kontext erwzingen
+block_peek_force_fe_option = ja

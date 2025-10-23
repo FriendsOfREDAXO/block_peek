@@ -104,6 +104,11 @@ class Generate extends rex_api_function
   private function prepareOutput(): string
   {
 
+    $forceFeContext = (bool) $this->addon->getConfig('force_fe', false);
+    if ($forceFeContext) {
+      rex::setProperty('redaxo', false);
+    }
+
     $context = new rex_article_content();
     $context->setArticleId($this->articleId);
     $context->setClang($this->clangId);

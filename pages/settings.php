@@ -106,6 +106,11 @@ $field->setAttribute('step', '0.05');
 $field->setAttribute('placeholder', '0,5');
 $field->setAttribute('style', 'width: 80px;');
 
+$field = $form->addCheckboxField('force_fe');
+$field->setLabel(rex_i18n::msg('block_peek_force_fe'));
+$field->addOption(rex_i18n::msg('block_peek_force_fe_option'), 1);
+
+
 $content = '';
 $content .= $form->getMessage();
 $content .= $form->get();
