@@ -16,9 +16,14 @@ class Extension
     $minHeight = (int) $addon->getConfig('iframe_min_height') ?: 300;
     $zoomFactor = (float) $addon->getConfig('iframe_zoom_factor') ?: 0.5;
     $sliceData = $ep->getParams();
-    $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id']);
+    $revision = $sliceData['revision'] ?? 0;
+    $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id'], false, 0);
+    if (!$slice) {
+      $revision = 1;
+      $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id'], false, 1);
+    }
     $updateDate = $slice->getValue('updatedate');
-    $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'block_peek_generate', 'updateDate' => $updateDate], $sliceData), false);
+    $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'block_peek_generate', 'updateDate' => $updateDate, 'revision' => $revision], $sliceData), false);
     $html =
       '<div class="block-peek-wrapper" data-zoom-factor="' . $zoomFactor . '" style="--block-peek-min-height: ' . $minHeight . 'px;">
 <iframe data-iframe-preview data-slice-id="' . $sliceData['slice_id'] . '" scrolling="yes" loading="lazy"
