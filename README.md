@@ -18,7 +18,7 @@ Ausserdem sollte der Slice-Output modular aufgebaut sein, damit die Vorschau auc
 
 ## Installation
 
-Einfach das Addon über den REDAXO Installer installieren und in den BlockPeek-Einstellungen konfigurieren.
+Einfach das Addon über den REDAXO Installer installieren, Template an eigene Wünsche anpassen (oder einfach das eigene Standard-Template einbinden) und die BlockPeek-Einstellungen konfigurieren. _Fetich_!
 
 ## Konfiguration
 
