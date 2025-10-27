@@ -1,5 +1,7 @@
 # BlockPeek 🥽 für REDAXO 5
 
+<img width="1344" height="768" alt="block_peek" src="https://github.com/user-attachments/assets/719a2a26-7759-47e3-a287-c02b4fb0bccf" />
+
 Tauscht im REDAXO Backend den Slice-Output durch eine Vorschau des jeweiligen Inhalts aus dem Frontend aus.
 Damit das Ganze funktioniert, wird ein HTML-Template benötigt, das in den Addon-Einstellungen hinterlegt werden kann.
 Ausserdem sollte der Slice-Output modular aufgebaut sein, damit die Vorschau auch wirklich den Inhalt des jeweiligen Slices darstellt.
