@@ -14,7 +14,6 @@
     left: 0;
     transform: scale(var(--block-peek-zoom-factor, 0.5));
     transform-origin: 0 0;
-    visibility: hidden;
     width: var(--size);
     max-width: none;
     height: var(--size);

@@ -1,8 +1,9 @@
 <?php
 
-namespace FriendsOfRedaxo\BlockPeek\Api;
+namespace FriendsOfRedaxo\BlockPeek;
 
 use Exception;
+use LogicException;
 
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Psr\Cache\CacheItemPoolInterface;
@@ -10,7 +11,6 @@ use Psr\Cache\CacheItemPoolInterface;
 use rex;
 use rex_addon;
 use rex_addon_interface;
-use rex_api_function;
 use rex_api_exception;
 use rex_api_result;
 use rex_article_content;
@@ -18,11 +18,11 @@ use rex_clang;
 use rex_extension;
 use rex_extension_point;
 use rex_file;
+use rex_module;
 use rex_path;
-use rex_response;
 use rex_var;
 
-class Generate extends rex_api_function
+class Generator
 {
 
   private rex_addon_interface $addon;
@@ -30,6 +30,8 @@ class Generate extends rex_api_function
   private int $articleId = 0;
   private int $clangId = 0;
   private int $sliceId = 0;
+  private int $moduleId = 0;
+  private int $ctypeId = 0;
   private int $updateDate = 0;
   private int $revision = 0;
 
@@ -43,28 +45,26 @@ class Generate extends rex_api_function
    * @throws rex_api_exception
    * @throws Exception
    */
-  public function execute(): rex_api_result
+  public function __construct($articleId, $clangId, $sliceId, $ctypeId, $moduleId, $updateDate, $revision)
   {
 
 
     /** @var rex_addon_interface $addon */
     $this->addon = rex_addon::get('block_peek');
 
-    $this->articleId = rex_get('article_id', 'int', 0);
-    $this->clangId = rex_get('clang', 'int', 0);
-    $this->sliceId = rex_get('slice_id', 'int', 0);
-    $this->updateDate = rex_get('updateDate', 'int', 0);
-    $this->revision = rex_get('revision', 'int', 0);
+    $this->articleId = $articleId;
+    $this->clangId = $clangId;
+    $this->sliceId = $sliceId;
+    $this->ctypeId = $ctypeId;
+    $this->moduleId = $moduleId;
+    $this->updateDate = $updateDate;
+    $this->revision = $revision;
 
     $cacheType = $this->addon->getConfig('cache', 'auto');
     $this->cacheActive = $cacheType === 'auto' && !rex::isDebugMode() ||
       $cacheType === 'active';
 
     $this->DEFAULT_TTL = (int) $this->addon->getConfig('cache_ttl', 3600);
-
-    $html = $this->getContent();
-
-    return $this->sendResponse($html);
   }
 
   /**
@@ -116,8 +116,8 @@ class Generate extends rex_api_function
     $html = $context->getSlice($this->sliceId);
 
     $template = $this->getTemplate($context);
-    $template = $context->replaceCommonVars($template);
 
+    $html = '<div class="block-peek-content">' . $html . '</div>';
     $html = str_replace('{{block_peek_content}}', $html, $template);
     $html = rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_OUTPUT', $html, [
       'article_id' => $this->articleId,
@@ -150,11 +150,10 @@ class Generate extends rex_api_function
     $blockPeekPosterJs = '<script>' . $blockPeekPosterJs . '</script>';
 
     $blockPeekStyles = '<style>
-    html { scrollbar-gutter: unset !important;}
     body { min-height: 0 !important; pointer-events: none !important; }
     </style>';
     $template = str_replace('</body>', $blockPeekStyles . $blockPeekPosterJs . '</body>', $template);
-
+    $template = $this->replaceVars($template, $context);
     $template = $this->generateTemplate($template, $context);
     return $template;
   }
@@ -183,18 +182,41 @@ class Generate extends rex_api_function
     return $output;
   }
 
-  /**
-   * Sends the response with the given content and status.
-   * @param string $content
-   * @param string $status
-   * 
-   * @return rex_api_result
-   */
-  private function sendResponse(string $content, string $status = rex_response::HTTP_OK): rex_api_result
+  private function replaceVars(string $template, rex_article_content $context): string
   {
+    $module = new rex_module($this->moduleId);
+    $moduleKey = $module->getKey() ?? '';
+    $template = $context->replaceCommonVars($template);
+    $template = str_replace(
+      [
+        'REX_MODULE_ID',
+        'REX_MODULE_KEY',
+        'REX_SLICE_ID',
+        'REX_CTYPE_ID',
+      ],
+      [
+        (string) $this->moduleId,
+        (string) $moduleKey,
+        (string) $this->sliceId,
+        (string) $this->ctypeId,
+      ],
+      $template,
+    );
 
-    rex_response::setStatus($status);
-    exit($content);
-    return new rex_api_result(true);
+    $template = rex_var::parse($template, rex_var::ENV_FRONTEND, 'module');
+    $template = preg_replace_callback(
+      '@redaxo://(\d+)(?:-(\d+))?/?@i',
+      function (array $matches) {
+        return rex_getUrl((int) $matches[1], (int) ($matches[2] ?? $this->clangId));
+      },
+      $template,
+    );
+
+    if (null === $template) {
+      throw new LogicException('Error while replacing links.');
+    }
+
+
+    return $template;
   }
 }
