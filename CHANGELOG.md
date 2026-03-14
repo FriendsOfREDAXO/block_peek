@@ -1,5 +1,9 @@
 # Changelog
 
+## **14.03.2026 Version 1.1.2**
+
+- fix: actually remove src files in build output
+
 ## **14.03.2026 Version 1.1.1**
 
 - fix: ckeditor 5 not saving data

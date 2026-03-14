@@ -33,6 +33,10 @@ jobs:
             -x "*.log" \
             -x "*phpunit.xml*" \
             -x "scripts" \
+            -x "*assets-src/" \
+            -x "*assets-src/*" \
+            -x "*scripts/" \
+            -x "*scripts/*" \
             -x ".prettierrc" \
             -x ".stylelintrc.json" \
             -x "jsconfig.json" \
