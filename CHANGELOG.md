@@ -1,5 +1,10 @@
 # Changelog
 
+## **14.03.2026 Version 1.1.1**
+
+- fix: ckeditor 5 not saving data
+- fix: remove src files in build output
+
 ## **08.02.2026 Version 1.1.0**
 
 - feat: use resize observer instead of mutation observer
