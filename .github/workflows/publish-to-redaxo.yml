@@ -32,6 +32,14 @@ jobs:
             -x "*.env*" \
             -x "*.log" \
             -x "*phpunit.xml*" \
+            -x "scripts" \
+            -x ".prettierrc" \
+            -x ".stylelintrc.json" \
+            -x "jsconfig.json" \
+            -x "*package*.json" \
+            -x "postcss.config.js" \
+            -x "block_peek.png" \
+            -x "vite.config.js" \
             -x "*tests/*" \
             -x "*.DS_Store" \
             -x "*Thumbs.db" \

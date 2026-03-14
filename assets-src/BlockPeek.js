@@ -108,6 +108,11 @@
 					e.preventDefault();
 					const buttonAction = saveButton.attr("name");
 					const buttonActionValue = saveButton.attr("value");
+					if (ckeditors && typeof ckeditors === "object") {
+						for (const [_key, editor] of Object.entries(ckeditors)) {
+							editor.updateSourceElement();
+						}
+					}
 					const formData = new FormData(form[0]);
 					formData.append(buttonAction, buttonActionValue);
 					fetch(form.attr("action"), {
@@ -146,6 +151,11 @@
 					e.preventDefault();
 					const buttonAction = applyButton.attr("name");
 					const buttonActionValue = applyButton.attr("value");
+					if (ckeditors && typeof ckeditors === "object") {
+						for (const [_key, editor] of Object.entries(ckeditors)) {
+							editor.updateSourceElement();
+						}
+					}
 					const formData = new FormData(form[0]);
 					formData.append(buttonAction, buttonActionValue);
 					// store current scroll position to restore it after saving
