@@ -15,6 +15,7 @@ block_peek_no_permission = You do not have permission to view this page.
 block_peek_template = BlockPeek Template
 block_peek_template_notice = <strong>Note:</strong> The placeholder <b>BLOCK_PEEK_CONTENT</b> is required to display the actual slice content. <br />The template is stored as a hidden REDAXO template (key: <code>block_peek_internal</code>). Do not add <code>REX_ARTICLE[...]</code> unless you want all slices rendered. <br /><strong>Tailwind 4:</strong> if you use the <code>developer</code> addon, the template auto-syncs to disk at <code>data/addons/developer/templates/&lt;Name&gt; [&lt;id&gt;]/template.php</code> and Tailwind can discover utility classes via <code>@source</code>.
 block_peek_template_saved = Template saved.
+block_peek_template_missing_placeholder = The template must contain the BLOCK_PEEK_CONTENT placeholder.
 
 # Configuration — Cache
 block_peek_cache_fieldset = Cache

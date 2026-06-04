@@ -23,23 +23,19 @@ class Generator
     private int $articleId = 0;
     private int $clangId = 0;
     private int $sliceId = 0;
-    private int $moduleId = 0;
-    private int $ctypeId = 0;
     private int $updateDate = 0;
     private int $revision = 0;
 
     protected int $DEFAULT_TTL;
     public bool $cacheActive = true;
 
-    public function __construct($articleId, $clangId, $sliceId, $ctypeId, $moduleId, $updateDate, $revision)
+    public function __construct(int $articleId, int $clangId, int $sliceId, int $updateDate, int $revision)
     {
         $this->addon = rex_addon::get('block_peek');
 
         $this->articleId = $articleId;
         $this->clangId = $clangId;
         $this->sliceId = $sliceId;
-        $this->ctypeId = $ctypeId;
-        $this->moduleId = $moduleId;
         $this->updateDate = $updateDate;
         $this->revision = $revision;
 
@@ -104,41 +100,46 @@ class Generator
     private function prepareOutput(int $templateId): string
     {
         $forceFeContext = (bool) $this->addon->getConfig('force_fe', false);
+        $wasBackendContext = rex::getProperty('redaxo');
         if ($forceFeContext) {
             rex::setProperty('redaxo', false);
         }
 
-        $context = new rex_article_content($this->articleId, $this->clangId);
-        $context->setSliceRevision($this->revision);
-        $context->setTemplateId($templateId);
+        try {
+            $context = new rex_article_content($this->articleId, $this->clangId);
+            $context->setSliceRevision($this->revision);
+            $context->setTemplateId($templateId);
 
-        $wrapperHtml = $context->getArticleTemplate();
-        $sliceHtml = $context->getSlice($this->sliceId);
+            $wrapperHtml = $context->getArticleTemplate();
+            $sliceHtml = $context->getSlice($this->sliceId);
 
-        $sliceHtml = '<div class="block-peek-content">' . $sliceHtml . '</div>';
-        $html = str_replace('BLOCK_PEEK_CONTENT', $sliceHtml, $wrapperHtml);
+            $sliceHtml = '<div class="block-peek-content">' . $sliceHtml . '</div>';
+            $html = str_replace('BLOCK_PEEK_CONTENT', $sliceHtml, $wrapperHtml);
 
-        $html = $this->injectPosterAndStyles($html);
-        $html = $this->setHtmlLang($html);
+            $html = $this->injectPosterAndStyles($html);
+            $html = $this->setHtmlLang($html);
 
-        // Resolve sprog wildcards ({{ … }}) for the preview's language. sprog only
-        // runs its OUTPUT_FILTER on the frontend (sprog/boot.php: if (!rex::isBackend())),
-        // so without this the backend preview shows raw wildcards. Pass the preview's
-        // clang explicitly — Wildcard::parse() defaults to rex_clang::getCurrentId(),
-        // which in the backend is the admin's clang, not necessarily the one previewed.
-        if (rex_addon::get('sprog')->isAvailable()) {
-            $html = \Sprog\Wildcard::parse($html, $this->clangId);
+            // Resolve sprog wildcards ({{ … }}) for the preview's language. sprog only
+            // runs its OUTPUT_FILTER on the frontend (sprog/boot.php: if (!rex::isBackend())),
+            // so without this the backend preview shows raw wildcards. Pass the preview's
+            // clang explicitly — Wildcard::parse() defaults to rex_clang::getCurrentId(),
+            // which in the backend is the admin's clang, not necessarily the one previewed.
+            if (rex_addon::get('sprog')->isAvailable()) {
+                $html = \Sprog\Wildcard::parse($html, $this->clangId);
+            }
+
+            return rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_OUTPUT', $html, [
+                'article_id' => $this->articleId,
+                'clang' => $this->clangId,
+                'slice_id' => $this->sliceId,
+                'updateDate' => $this->updateDate,
+                'revision' => $this->revision,
+            ]));
+        } finally {
+            if ($forceFeContext) {
+                rex::setProperty('redaxo', $wasBackendContext);
+            }
         }
-
-        $html = rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_OUTPUT', $html, [
-            'article_id' => $this->articleId,
-            'clang' => $this->clangId,
-            'slice_id' => $this->sliceId,
-            'updateDate' => $this->updateDate,
-            'revision' => $this->revision,
-        ]));
-
-        return $html;
     }
 
     private function injectPosterAndStyles(string $html): string

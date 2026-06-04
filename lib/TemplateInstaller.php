@@ -7,6 +7,7 @@ use rex_addon;
 use rex_config;
 use rex_extension;
 use rex_extension_point;
+use rex_file;
 use rex_sql;
 use rex_template;
 use rex_template_cache;
@@ -106,8 +107,8 @@ class TemplateInstaller
     private static function loadDefaultContent(): string
     {
         $path = rex_addon::get('block_peek')->getPath('templates/default.php');
-        $content = @file_get_contents($path);
-        if ($content === false) {
+        $content = rex_file::get($path);
+        if (!is_string($content) || $content === '') {
             return "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n</head>\n<body>\nBLOCK_PEEK_CONTENT\n</body>\n</html>\n";
         }
         return $content;

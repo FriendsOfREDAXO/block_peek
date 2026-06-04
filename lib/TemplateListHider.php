@@ -14,6 +14,8 @@ class TemplateListHider
      * OUTPUT_FILTER (LATE) on the templates list page only. Strips the <tr> for our
      * hidden row by matching template_id=<id> with a non-digit boundary so id "1"
      * doesn't accidentally match "10".
+    *
+    * @param rex_extension_point<string> $ep
      */
     public static function register(rex_extension_point $ep): void
     {
@@ -34,9 +36,6 @@ class TemplateListHider
         $hideId = $template->getId();
 
         $content = $ep->getSubject();
-        if (!is_string($content)) {
-            return;
-        }
 
         $result = preg_replace_callback(
             '/<tr\b[^>]*>.*?<\/tr>/s',
