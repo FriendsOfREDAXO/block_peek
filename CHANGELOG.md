@@ -2,11 +2,11 @@
 
 ## **04.06.2026 Version 1.3.1**
 
-- fix: verschiedene RexStan-Befunde behoben (u. a. null-safety beim Slice-Rendering, typisierte Konstruktor-Signaturen, generische Extension-Point-Annotationen)
-- fix: stabileres Preview-Rendering durch defensivere Parameterbehandlung und saubere Rücksetzung des REDAXO-Contexts bei `force_fe`
-- fix: Settings-Formular abgesichert (Admin-null-check) und Template-Save validiert jetzt den erforderlichen Platzhalter `BLOCK_PEEK_CONTENT`
+- fix: mehrere RexStan-Befunde behoben (u. a. Null-Safety beim Slice-Rendering, typisierte Konstruktoren, generische Extension-Point-Annotationen)
+- fix: Preview-Rendering stabilisiert durch defensivere Parameterbehandlung und saubere Rücksetzung des REDAXO-Kontexts bei `force_fe`
+- fix: Settings-Formular abgesichert (Admin-Null-Check); das Speichern des Templates validiert nun den Pflichtplatzhalter `BLOCK_PEEK_CONTENT`
 - ux: Assets werden nur noch auf `content/edit` geladen statt global im Backend
-- chore: interne Dateizugriffe auf REDAXO-API (`rex_file::get`) vereinheitlicht
+- chore: internen Dateizugriff auf die REDAXO-API (`rex_file::get`) vereinheitlicht
 
 ## **04.06.2026 Version 1.3.0**
 
