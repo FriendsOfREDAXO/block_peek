@@ -26,7 +26,7 @@ class Extension
     $content = $generator->getContent();
     $html =
       '<div class="block-peek-wrapper" data-zoom-factor="' . $zoomFactor . '" style="--block-peek-min-height: ' . $minHeight . 'px;">
-<iframe data-iframe-preview data-slice-id="' . $sliceData['slice_id'] . '" scrolling="no"
+<iframe inert data-iframe-preview data-slice-id="' . $sliceData['slice_id'] . '" scrolling="no"
 srcdoc="' . htmlspecialchars($content) . '" frameborder="0" class="block-peek-iframe" style="--block-peek-zoom-factor: ' . $zoomFactor . ';"></iframe>
 </div>';
     $ep->setSubject($html);

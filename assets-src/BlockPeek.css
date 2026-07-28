@@ -18,5 +18,8 @@
 		max-width: none;
 		height: var(--size);
 		overflow: hidden;
+		/* content CSS inside the iframe can re-enable pointer-events on its own
+		   elements; disabling them on the iframe itself is not overridable */
+		pointer-events: none;
 	}
 }

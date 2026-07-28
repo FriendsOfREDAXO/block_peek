@@ -1,5 +1,10 @@
 # Changelog
 
+## **28.07.2026 Version 1.4.0**
+
+- fix: previews are now fully non-interactive — the preview iframe gets the `inert` attribute plus `pointer-events: none`, so content CSS inside the iframe can no longer re-enable clicks or keyboard focus (previously only `pointer-events` on the iframe body was disabled, which content CSS could override)
+- refactor: removed the `<div class="block-peek-content">` wrapper around the slice output; the class now sits on the `<body>` of the default template instead. Existing installs keep their already-seeded template — if you styled against `.block-peek-content`, add the class to your BlockPeek template's `<body>` yourself
+
 ## **04.06.2026 Version 1.3.0**
 
 - feat: resolve sprog wildcards (`{{ … }}`) in slice previews when the `sprog` addon is installed — parsed in the preview's clang before the iframe is built, so backend previews match the translated frontend output (sprog's own wildcard filter only runs on the frontend)

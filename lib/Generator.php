@@ -115,7 +115,6 @@ class Generator
         $wrapperHtml = $context->getArticleTemplate();
         $sliceHtml = $context->getSlice($this->sliceId);
 
-        $sliceHtml = '<div class="block-peek-content">' . $sliceHtml . '</div>';
         $html = str_replace('BLOCK_PEEK_CONTENT', $sliceHtml, $wrapperHtml);
 
         $html = $this->injectPosterAndStyles($html);
@@ -150,7 +149,7 @@ class Generator
         $blockPeekPosterJs = '<script>' . $blockPeekPosterJs . '</script>';
 
         $blockPeekStyles = '<style>
-        body { min-height: 0 !important; pointer-events: none !important; }
+        body { min-height: 0 !important; }
         </style>';
 
         $injected = preg_replace(

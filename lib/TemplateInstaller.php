@@ -108,7 +108,7 @@ class TemplateInstaller
         $path = rex_addon::get('block_peek')->getPath('templates/default.php');
         $content = @file_get_contents($path);
         if ($content === false) {
-            return "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n</head>\n<body>\nBLOCK_PEEK_CONTENT\n</body>\n</html>\n";
+            return "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n</head>\n<body class=\"block-peek-content\">\nBLOCK_PEEK_CONTENT\n</body>\n</html>\n";
         }
         return $content;
     }
