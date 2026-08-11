@@ -21,8 +21,15 @@ class Extension
       $revision = 1;
       $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id'], false, 1);
     }
-    $updateDate = $slice->getValue('updatedate');
-    $generator = new Generator(articleId: $sliceData['article_id'], clangId: $sliceData['clang'], sliceId: $sliceData['slice_id'], moduleId: $sliceData['module_id'], ctypeId: $sliceData['ctype'], updateDate: $updateDate, revision: $revision);
+    if (!$slice) {
+      // Slice not found in either revision — keep REDAXO's default preview.
+      return;
+    }
+    // updatedate is a datetime string — convert to a timestamp so the cache key
+    // changes on every edit (a plain int cast would truncate it to the year).
+    $updateDateValue = $slice->getValue('updatedate');
+    $updateDate = is_numeric($updateDateValue) ? (int) $updateDateValue : (int) strtotime((string) $updateDateValue);
+    $generator = new Generator(articleId: (int) $sliceData['article_id'], clangId: (int) $sliceData['clang'], sliceId: (int) $sliceData['slice_id'], updateDate: $updateDate, revision: (int) $revision);
     $content = $generator->getContent();
     $html =
       '<div class="block-peek-wrapper" data-zoom-factor="' . $zoomFactor . '" style="--block-peek-min-height: ' . $minHeight . 'px;">

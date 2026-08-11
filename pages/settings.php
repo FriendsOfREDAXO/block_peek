@@ -26,21 +26,26 @@ if (rex_post('btn_save_template', 'string') !== ''
 ) {
     $newContent = rex_post('block_peek_template_content', 'string', '');
 
-    $sql = rex_sql::factory();
-    $sql->setTable(rex::getTable('template'));
-    $sql->setWhere('id = :id', ['id' => $templateId]);
-    $sql->setValue('content', $newContent);
-    $sql->addGlobalUpdateFields();
-    $sql->update();
+    if (!str_contains($newContent, 'BLOCK_PEEK_CONTENT')) {
+        // Without the placeholder every preview would render empty — reject the save.
+        $templateMessage = rex_view::error(rex_i18n::msg('block_peek_template_missing_placeholder'));
+    } else {
+        $sql = rex_sql::factory();
+        $sql->setTable(rex::getTable('template'));
+        $sql->setWhere('id = :id', ['id' => $templateId]);
+        $sql->setValue('content', $newContent);
+        $sql->addGlobalUpdateFields();
+        $sql->update();
 
-    rex_template_cache::delete($templateId);
-    rex_template_cache::generate($templateId);
-    rex_extension::registerPoint(new rex_extension_point('TEMPLATE_UPDATED', '', ['id' => $templateId]));
+        rex_template_cache::delete($templateId);
+        rex_template_cache::generate($templateId);
+        rex_extension::registerPoint(new rex_extension_point('TEMPLATE_UPDATED', '', ['id' => $templateId]));
 
-    $templateMessage = rex_view::success(rex_i18n::msg('block_peek_template_saved'));
+        $templateMessage = rex_view::success(rex_i18n::msg('block_peek_template_saved'));
 
-    // Re-fetch by id (we just confirmed it exists above; safer than forKey here).
-    $template = new rex_template($templateId);
+        // Re-fetch by id (we just confirmed it exists above; safer than forKey here).
+        $template = new rex_template($templateId);
+    }
 }
 
 $currentContent = (string) $template->getTemplate();
@@ -124,7 +129,7 @@ $field->setAttribute('type', 'number');
 $field->setAttribute('min', '0.1');
 $field->setAttribute('max', '1.0');
 $field->setAttribute('step', '0.05');
-$field->setAttribute('placeholder', '0,5');
+$field->setAttribute('placeholder', '0.5');
 $field->setAttribute('style', 'width: 80px;');
 
 $field = $form->addCheckboxField('force_fe');

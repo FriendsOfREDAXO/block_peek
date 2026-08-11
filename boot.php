@@ -6,7 +6,8 @@ use FriendsOfRedaxo\BlockPeek\TemplateListHider;
 $addon = $this;
 
 if ($addon->getConfig('inactive') !== '|1|') {
-    if (rex::isBackend() && rex::getUser()) {
+    // Previews only exist on content/edit — don't load assets on every backend page.
+    if (rex::isBackend() && rex::getUser() && rex_be_controller::getCurrentPage() === 'content/edit') {
         rex_view::addJsFile($this->getAssetsUrl('BlockPeek.js'));
         rex_view::addCssFile($this->getAssetsUrl('BlockPeek.css'));
         rex_extension::register('PACKAGES_INCLUDED', function () {

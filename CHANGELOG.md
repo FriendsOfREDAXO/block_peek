@@ -1,5 +1,16 @@
 # Changelog
 
+## **11.08.2026 Version 1.4.1**
+
+Thanks to @skerbis (#17) for the groundwork on these fixes.
+
+- fix: `force_fe` no longer leaks the frontend context — `rex::setProperty('redaxo', …)` is restored after each preview render, so subsequent backend code in the same request no longer runs as "frontend"
+- fix: no more fatal error when a slice can't be found in either revision (the default REDAXO preview is kept instead)
+- fix: slice `updatedate` is now converted to a real timestamp for the preview cache key (previously it degraded to just the year, so edits within the same year could serve stale cached previews)
+- fix: saving the BlockPeek template now rejects content without the required `BLOCK_PEEK_CONTENT` placeholder instead of silently breaking all previews
+- ux: backend assets (JS/CSS) are only loaded on `content/edit` instead of every backend page
+- chore: removed unused `moduleId`/`ctypeId` from the `Generator` constructor; typed constructor parameters
+
 ## **28.07.2026 Version 1.4.0**
 
 - fix: previews are now fully non-interactive — the preview iframe gets the `inert` attribute plus `pointer-events: none`, so content CSS inside the iframe can no longer re-enable clicks or keyboard focus (previously only `pointer-events` on the iframe body was disabled, which content CSS could override)
