@@ -40,7 +40,7 @@ There is no test suite, no PHP linter, and no JS linter wired up. `.stylelintrc.
 1. `boot.php` registers a late handler on REDAXO's `SLICE_BE_PREVIEW` extension point (only when `inactive` config is not `|1|`, the user is logged in, and we are in the backend).
 2. `lib/Extension.php` (`FriendsOfRedaxo\BlockPeek\Extension::register`) is the EP callback. It reads slice params from the EP, instantiates a `Generator`, wraps the result in `<iframe srcdoc="...">`, and replaces the EP subject. **No HTTP round-trip** — the preview HTML is inlined as `srcdoc`, which is why loading is instant.
 3. `lib/Generator.php` builds the inner HTML:
-   - Cache key = `md5(articleId + sliceId + updateDate + revision)`, stored via Symfony `FilesystemAdapter` in the addon's cache path. Cache mode (`auto` / `active` / `inactive`) lives in addon config; `auto` follows REDAXO debug mode.
+   - Cache key = `md5(articleId + sliceId + updateDate + revision)`, stored as a JSON file per entry (`rex_file::putCache`, with an `expires` timestamp) under `article-<id>/` in the addon's cache path. No symfony/cache: its psr/cache 2.x clashes with the psr/cache 3.x bundled by rexstan. Cache mode (`auto` / `active` / `inactive`) lives in addon config; `auto` follows REDAXO debug mode.
    - Renders the slice via `rex_article_content::getSlice()`.
    - Wraps it in the user-configured template (settings page), substituting the `{{block_peek_content}}` placeholder.
    - Injects `assets_head` / `assets_body` snippets, sets `<html lang>` from the clang.

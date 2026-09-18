@@ -2,9 +2,6 @@
 
 namespace FriendsOfRedaxo\BlockPeek;
 
-use Symfony\Component\Cache\Adapter\FilesystemAdapter;
-use Psr\Cache\CacheItemPoolInterface;
-
 use rex;
 use rex_addon;
 use rex_addon_interface;
@@ -19,7 +16,6 @@ use rex_template;
 class Generator
 {
     private rex_addon_interface $addon;
-    private CacheItemPoolInterface $cache;
     private int $articleId = 0;
     private int $clangId = 0;
     private int $sliceId = 0;
@@ -51,20 +47,51 @@ class Generator
         $template = $this->getTemplateRow();
         $templateUpdateDate = $this->fetchTemplateUpdateDate($template->getId());
 
-        $this->cache = new FilesystemAdapter("article-{$this->articleId}", $this->DEFAULT_TTL, $this->addon->getCachePath());
-        $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision . $templateUpdateDate);
-        $cachedItem = $this->cache->getItem($cacheKey);
-
-        if (!$cachedItem->isHit() || !$this->cacheActive) {
-            $content = $this->prepareOutput($template->getId());
-            $cachedItem->set($content);
-            $cachedItem->expiresAfter($this->DEFAULT_TTL);
-            $this->cache->save($cachedItem);
-        } else {
-            $content = $cachedItem->get();
+        if (!$this->cacheActive) {
+            return $this->prepareOutput($template->getId());
         }
 
+        $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision . $templateUpdateDate);
+        $cacheFile = $this->addon->getCachePath("article-{$this->articleId}/{$cacheKey}.json");
+
+        $cached = $this->readCache($cacheFile);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $content = $this->prepareOutput($template->getId());
+        rex_file::putCache($cacheFile, [
+            'expires' => time() + $this->DEFAULT_TTL,
+            'content' => $content,
+        ]);
+
         return $content;
+    }
+
+    /**
+     * Returns the cached preview, or null on a miss. Expired or unreadable
+     * entries count as a miss; expired files are removed right away.
+     *
+     * Plain rex_file instead of symfony/cache: the addon only needs a file cache
+     * with a TTL, and a bundled symfony/cache pulls in psr/cache 2.x, which clashes
+     * with the psr/cache 3.x bundled by rexstan (fatal error on content/edit as soon
+     * as both addons are active).
+     */
+    private function readCache(string $cacheFile): ?string
+    {
+        if (!is_file($cacheFile)) {
+            return null;
+        }
+        $entry = rex_file::getCache($cacheFile, null);
+        if (!is_array($entry) || !isset($entry['expires'], $entry['content']) || !is_string($entry['content'])) {
+            rex_file::delete($cacheFile);
+            return null;
+        }
+        if ($entry['expires'] < time()) {
+            rex_file::delete($cacheFile);
+            return null;
+        }
+        return $entry['content'];
     }
 
     private function getTemplateRow(): rex_template

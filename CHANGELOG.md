@@ -1,5 +1,11 @@
 # Changelog
 
+## **Unreleased**
+
+- fix: no more fatal error on `content/edit` when rexstan is active — the preview cache no longer uses `symfony/cache`, whose bundled `psr/cache` 2.x clashes with the `psr/cache` 3.x bundled by rexstan (whichever autoloader wins, the other side gets an incompatible `CacheItemPoolInterface`). The cache is now a plain JSON file per entry via `rex_file` in the addon's cache path; key, TTL and the `auto`/`active`/`inactive` modes are unchanged. The addon no longer ships any Composer dependencies
+- chore: with cache mode `inactive`, previews are no longer written to the cache at all (previously written but never read)
+- note: entries from the old cache format are simply ignored; clearing the REDAXO cache once after the update removes them
+
 ## **11.08.2026 Version 1.4.1**
 
 Thanks to @skerbis (#17) for the groundwork on these fixes.
