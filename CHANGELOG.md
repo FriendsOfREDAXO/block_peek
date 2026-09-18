@@ -1,6 +1,8 @@
 # Changelog
 
-## **Unreleased**
+## **18.09.2026 Version 1.4.2**
+
+Thanks to @anveno (#31) for tracking down the rexstan clash and dropping symfony/cache.
 
 - fix: no more fatal error on `content/edit` when rexstan is active — the preview cache no longer uses `symfony/cache`, whose bundled `psr/cache` 2.x clashes with the `psr/cache` 3.x bundled by rexstan (whichever autoloader wins, the other side gets an incompatible `CacheItemPoolInterface`). The cache is now one plain file per slice via `rex_file` in the addon's cache path (new versions overwrite old ones, so the cache no longer grows with every save); key and the `auto`/`active`/`inactive` modes are unchanged
 - chore: the addon no longer ships any Composer dependencies — `composer.json`, `vendor/` and the Composer step in the release workflow are gone (REDAXO autoloads `lib/` itself). After a manual update (git pull/copy) delete the leftover `vendor/` directory
@@ -8,6 +10,7 @@
 - chore: deleting a slice or article also removes its preview cache files (`SLICE_DELETED` / `ART_DELETED`)
 - chore: an empty or `0` cache TTL falls back to the default of 3600 seconds
 - chore: `update.php` clears the addon's cache path, removing entries in the old format
+- chore: bumped dev dependencies (postcss-selector-parser 7.1.5, fast-uri 3.1.7, browserslist 4.28.9, js-yaml 4.3.2)
 
 ## **11.08.2026 Version 1.4.1**
 
