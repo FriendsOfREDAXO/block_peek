@@ -39,7 +39,8 @@ class Generator
         $this->cacheActive = $cacheType === 'auto' && !rex::isDebugMode() ||
             $cacheType === 'active';
 
-        $this->DEFAULT_TTL = (int) $this->addon->getConfig('cache_ttl', 3600);
+        // empty or 0 falls back to the default (use cache mode "inactive" to turn caching off)
+        $this->DEFAULT_TTL = (int) $this->addon->getConfig('cache_ttl') ?: 3600;
     }
 
     public function getContent(): string
@@ -47,48 +48,54 @@ class Generator
         $template = $this->getTemplateRow();
         $templateUpdateDate = $this->fetchTemplateUpdateDate($template->getId());
 
+        // One file per slice (slice ids are unique across clangs and revisions), so
+        // a new version overwrites the old one and the cache dir stays bounded.
+        $cacheFile = $this->addon->getCachePath("article-{$this->articleId}/slice-{$this->sliceId}.cache");
+
         if (!$this->cacheActive) {
+            // Drop the entry so a visit in debug/inactive mode also refreshes what
+            // gets served once caching is back on (the key doesn't cover media,
+            // sprog wildcards, module code, …).
+            rex_file::delete($cacheFile);
             return $this->prepareOutput($template->getId());
         }
 
         $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision . $templateUpdateDate);
-        $cacheFile = $this->addon->getCachePath("article-{$this->articleId}/{$cacheKey}.json");
 
-        $cached = $this->readCache($cacheFile);
+        $cached = $this->readCache($cacheFile, $cacheKey);
         if ($cached !== null) {
             return $cached;
         }
 
         $content = $this->prepareOutput($template->getId());
-        rex_file::putCache($cacheFile, [
+        // serialize() instead of JSON: slice output isn't guaranteed to be valid
+        // UTF-8, and json_encode() would fail on it — that slice would never cache.
+        rex_file::put($cacheFile, serialize([
+            'key' => $cacheKey,
             'expires' => time() + $this->DEFAULT_TTL,
             'content' => $content,
-        ]);
+        ]));
 
         return $content;
     }
 
     /**
-     * Returns the cached preview, or null on a miss. Expired or unreadable
-     * entries count as a miss; expired files are removed right away.
+     * Returns the cached preview, or null on a miss (no file, unreadable, outdated
+     * key or expired). Misses are simply overwritten by the next write.
      *
      * Plain rex_file instead of symfony/cache: the addon only needs a file cache
      * with a TTL, and a bundled symfony/cache pulls in psr/cache 2.x, which clashes
      * with the psr/cache 3.x bundled by rexstan (fatal error on content/edit as soon
      * as both addons are active).
      */
-    private function readCache(string $cacheFile): ?string
+    private function readCache(string $cacheFile, string $cacheKey): ?string
     {
-        if (!is_file($cacheFile)) {
+        $raw = rex_file::get($cacheFile);
+        if ($raw === null) {
             return null;
         }
-        $entry = rex_file::getCache($cacheFile, null);
-        if (!is_array($entry) || !isset($entry['expires'], $entry['content']) || !is_string($entry['content'])) {
-            rex_file::delete($cacheFile);
-            return null;
-        }
-        if ($entry['expires'] < time()) {
-            rex_file::delete($cacheFile);
+        $entry = @unserialize($raw, ['allowed_classes' => false]);
+        if (!is_array($entry) || ($entry['key'] ?? null) !== $cacheKey || ($entry['expires'] ?? 0) < time() || !is_string($entry['content'] ?? null)) {
             return null;
         }
         return $entry['content'];

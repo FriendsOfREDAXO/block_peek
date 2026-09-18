@@ -8,11 +8,6 @@ yarn-error.log*
 node_modules/.vite/
 dist/
 
-# composer
-/vendor
-!/vendor/autoload.php
-composer.lock
-
 # Logs
 *.log
 

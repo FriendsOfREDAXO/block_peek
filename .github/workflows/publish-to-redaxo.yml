@@ -12,15 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          tools: composer
-
-      - name: Install Composer dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
-
       - name: Create release archive
         run: |
           # Create ZIP file directly, excluding unwanted files
