@@ -2,9 +2,6 @@
 
 namespace FriendsOfRedaxo\BlockPeek;
 
-use Symfony\Component\Cache\Adapter\FilesystemAdapter;
-use Psr\Cache\CacheItemPoolInterface;
-
 use rex;
 use rex_addon;
 use rex_addon_interface;
@@ -19,7 +16,6 @@ use rex_template;
 class Generator
 {
     private rex_addon_interface $addon;
-    private CacheItemPoolInterface $cache;
     private int $articleId = 0;
     private int $clangId = 0;
     private int $sliceId = 0;
@@ -43,7 +39,8 @@ class Generator
         $this->cacheActive = $cacheType === 'auto' && !rex::isDebugMode() ||
             $cacheType === 'active';
 
-        $this->DEFAULT_TTL = (int) $this->addon->getConfig('cache_ttl', 3600);
+        // empty or 0 falls back to the default (use cache mode "inactive" to turn caching off)
+        $this->DEFAULT_TTL = (int) $this->addon->getConfig('cache_ttl') ?: 3600;
     }
 
     public function getContent(): string
@@ -51,20 +48,57 @@ class Generator
         $template = $this->getTemplateRow();
         $templateUpdateDate = $this->fetchTemplateUpdateDate($template->getId());
 
-        $this->cache = new FilesystemAdapter("article-{$this->articleId}", $this->DEFAULT_TTL, $this->addon->getCachePath());
-        $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision . $templateUpdateDate);
-        $cachedItem = $this->cache->getItem($cacheKey);
+        // One file per slice (slice ids are unique across clangs and revisions), so
+        // a new version overwrites the old one and the cache dir stays bounded.
+        $cacheFile = $this->addon->getCachePath("article-{$this->articleId}/slice-{$this->sliceId}.cache");
 
-        if (!$cachedItem->isHit() || !$this->cacheActive) {
-            $content = $this->prepareOutput($template->getId());
-            $cachedItem->set($content);
-            $cachedItem->expiresAfter($this->DEFAULT_TTL);
-            $this->cache->save($cachedItem);
-        } else {
-            $content = $cachedItem->get();
+        if (!$this->cacheActive) {
+            // Drop the entry so a visit in debug/inactive mode also refreshes what
+            // gets served once caching is back on (the key doesn't cover media,
+            // sprog wildcards, module code, …).
+            rex_file::delete($cacheFile);
+            return $this->prepareOutput($template->getId());
         }
 
+        $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision . $templateUpdateDate);
+
+        $cached = $this->readCache($cacheFile, $cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $content = $this->prepareOutput($template->getId());
+        // serialize() instead of JSON: slice output isn't guaranteed to be valid
+        // UTF-8, and json_encode() would fail on it — that slice would never cache.
+        rex_file::put($cacheFile, serialize([
+            'key' => $cacheKey,
+            'expires' => time() + $this->DEFAULT_TTL,
+            'content' => $content,
+        ]));
+
         return $content;
+    }
+
+    /**
+     * Returns the cached preview, or null on a miss (no file, unreadable, outdated
+     * key or expired). Misses are simply overwritten by the next write.
+     *
+     * Plain rex_file instead of symfony/cache: the addon only needs a file cache
+     * with a TTL, and a bundled symfony/cache pulls in psr/cache 2.x, which clashes
+     * with the psr/cache 3.x bundled by rexstan (fatal error on content/edit as soon
+     * as both addons are active).
+     */
+    private function readCache(string $cacheFile, string $cacheKey): ?string
+    {
+        $raw = rex_file::get($cacheFile);
+        if ($raw === null) {
+            return null;
+        }
+        $entry = @unserialize($raw, ['allowed_classes' => false]);
+        if (!is_array($entry) || ($entry['key'] ?? null) !== $cacheKey || ($entry['expires'] ?? 0) < time() || !is_string($entry['content'] ?? null)) {
+            return null;
+        }
+        return $entry['content'];
     }
 
     private function getTemplateRow(): rex_template

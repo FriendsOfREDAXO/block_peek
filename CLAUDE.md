@@ -9,9 +9,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Common commands
 
 ```bash
-# PHP deps (matches the GitHub release workflow)
-composer install --no-dev --optimize-autoloader
-
 # Build the JS/CSS bundle into ./assets/ (also syncs version + cleans assets/)
 npm run build
 
@@ -40,7 +37,7 @@ There is no test suite, no PHP linter, and no JS linter wired up. `.stylelintrc.
 1. `boot.php` registers a late handler on REDAXO's `SLICE_BE_PREVIEW` extension point (only when `inactive` config is not `|1|`, the user is logged in, and we are in the backend).
 2. `lib/Extension.php` (`FriendsOfRedaxo\BlockPeek\Extension::register`) is the EP callback. It reads slice params from the EP, instantiates a `Generator`, wraps the result in `<iframe srcdoc="...">`, and replaces the EP subject. **No HTTP round-trip** — the preview HTML is inlined as `srcdoc`, which is why loading is instant.
 3. `lib/Generator.php` builds the inner HTML:
-   - Cache key = `md5(articleId + sliceId + updateDate + revision)`, stored via Symfony `FilesystemAdapter` in the addon's cache path. Cache mode (`auto` / `active` / `inactive`) lives in addon config; `auto` follows REDAXO debug mode.
+   - Cache key = `md5(articleId + sliceId + updateDate + revision)`, stored with an `expires` timestamp in one serialized file per slice (`article-<id>/slice-<sliceId>.cache` in the addon's cache path), so new versions overwrite old ones. In inactive mode the slice's file is deleted. `update.php` wipes the cache path. No symfony/cache: its psr/cache 2.x clashes with the psr/cache 3.x bundled by rexstan. Cache mode (`auto` / `active` / `inactive`) lives in addon config; `auto` follows REDAXO debug mode.
    - Renders the slice via `rex_article_content::getSlice()`.
    - Wraps it in the user-configured template (settings page), substituting the `{{block_peek_content}}` placeholder.
    - Injects `assets_head` / `assets_body` snippets, sets `<html lang>` from the clang.
@@ -66,10 +63,10 @@ Source in `assets-src/`, built into `assets/` (committed) by Vite. Vite external
 
 ### Autoloading
 
-`composer.json` uses a classmap on `lib/`. After editing classes there, the GitHub release action runs `composer install --no-dev --optimize-autoloader` to regenerate it; locally you may need `composer dump-autoload` if you add new classes.
+No Composer: the addon has no PHP dependencies, and REDAXO autoloads `lib/` itself.
 
 ## Release / packaging
 
-`.github/workflows/publish-to-redaxo.yml` runs on GitHub Release publish: installs prod composer deps, zips the repo (excluding `assets-src/`, `scripts/`, `node_modules`, dotfiles, `*.json` package files, `vite.config.js`, etc. — see the workflow for the full list), uploads the zip to the release, and pushes to MyREDAXO via `FriendsOfREDAXO/installer-action`. The `installer_ignore` list in `package.yml` mirrors most of these exclusions for the in-REDAXO installer path.
+`.github/workflows/publish-to-redaxo.yml` runs on GitHub Release publish: zips the repo (excluding `assets-src/`, `scripts/`, `node_modules`, dotfiles, `*.json` package files, `vite.config.js`, etc. — see the workflow for the full list), uploads the zip to the release, and pushes to MyREDAXO via `FriendsOfREDAXO/installer-action`. The `installer_ignore` list in `package.yml` mirrors most of these exclusions for the in-REDAXO installer path.
 
 Build artifacts under `assets/` ARE committed and shipped — do not add them to `.gitignore`.
