@@ -15,7 +15,7 @@ Ausserdem sollte der Slice-Output modular aufgebaut sein, damit die Vorschau auc
 - Anpassbare Iframe-Größe und Zoom-Faktor
 - Caching der generierten Vorschauen zur Performance-Optimierung
 - Extension Point `BLOCK_PEEK_OUTPUT` zur weiteren Anpassung der Ausgabe
-- Extension Point `BLOCK_PEEK_ACTIVE`, um die Vorschau für einzelne Slices abzuschalten
+- Extension Point `BLOCK_PEEK_SLICE_ENABLED`, um die Vorschau für einzelne Slices abzuschalten
 
 ## Installation
 
@@ -64,21 +64,19 @@ rex_extension::register('PACKAGES_INCLUDED', function (rex_extension_point $ep) 
 });
 ```
 
-### BLOCK_PEEK_ACTIVE
+### BLOCK_PEEK_SLICE_ENABLED
 
-Mit `BLOCK_PEEK_ACTIVE` lässt sich die Vorschau für einzelne Slices abschalten. Gibt ein Handler `false` zurück, bleibt die normale REDAXO-Vorschau stehen (die Modul-Ausgabe, im Backend gerendert); für diesen Slice wird kein iframe erzeugt und nichts gecacht. Sinnvoll für Module ohne sichtbares Frontend-Markup wie Ankerpunkte, HTML-Code oder eingebundene Artikel, die im Backend lieber einen kurzen Hinweis zeigen als einen leeren Kasten.
+Mit `BLOCK_PEEK_SLICE_ENABLED` lässt sich die Vorschau für einzelne Slices abschalten. Gibt ein Handler `false` zurück, bleibt die normale REDAXO-Vorschau stehen (die Modul-Ausgabe, im Backend gerendert); für diesen Slice wird kein iframe erzeugt und nichts gecacht. Sinnvoll für Module ohne sichtbares Frontend-Markup wie Ankerpunkte, HTML-Code oder eingebundene Artikel, die im Backend lieber einen kurzen Hinweis zeigen als einen leeren Kasten.
 
 Parameter: `article_id`, `clang`, `ctype`, `module_id`, `slice_id`, `revision` (wie bei `SLICE_BE_PREVIEW`).
 
 ```php
-rex_extension::register('PACKAGES_INCLUDED', function () {
-    rex_extension::register('BLOCK_PEEK_ACTIVE', function (rex_extension_point $ep) {
-        $module = rex_module::forId((int) $ep->getParam('module_id'));
-        // Beispiel: keine iframe-Vorschau für das Modul mit dem Key "anchor"
-        if ($module && 'anchor' === $module->getKey()) {
-            return false;
-        }
-    });
+rex_extension::register('BLOCK_PEEK_SLICE_ENABLED', function (rex_extension_point $ep) {
+    $module = new rex_module((int) $ep->getParam('module_id'));
+    // Beispiel: keine iframe-Vorschau für das Modul mit dem Key "anchor"
+    if ('anchor' === $module->getKey()) {
+        return false;
+    }
 });
 ```
 

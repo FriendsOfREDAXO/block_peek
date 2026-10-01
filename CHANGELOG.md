@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- feat: new extension point `BLOCK_PEEK_ACTIVE` (subject `true`, same params as `SLICE_BE_PREVIEW`) — return `false` to keep REDAXO's default preview for a slice, e.g. for modules without visible frontend markup (anchors, raw HTML, embedded articles). No iframe is rendered or cached for that slice
+- feat: new extension point `BLOCK_PEEK_SLICE_ENABLED` (subject `true`, same params as `SLICE_BE_PREVIEW`) — return `false` to keep REDAXO's default preview for a slice, e.g. for modules without visible frontend markup (anchors, raw HTML, embedded articles). No iframe is rendered or cached for that slice
 
 ## **18.09.2026 Version 1.4.2**
 

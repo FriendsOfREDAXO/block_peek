@@ -19,8 +19,8 @@ class Extension
     // Other addons can opt a slice out of the iframe preview (e.g. modules without
     // visible frontend markup). false keeps REDAXO's default preview - the module output
     // rendered in the backend - and skips rendering and caching for this slice.
-    $active = rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_ACTIVE', true, $sliceData));
-    if (!$active) {
+    $enabled = rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_SLICE_ENABLED', true, $sliceData));
+    if (!$enabled) {
       return;
     }
     $revision = $sliceData['revision'] ?? 0;
