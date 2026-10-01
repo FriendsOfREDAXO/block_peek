@@ -4,6 +4,7 @@ namespace FriendsOfRedaxo\BlockPeek;
 
 use rex_addon;
 use rex_article_slice;
+use rex_extension;
 use rex_extension_point;
 
 class Extension
@@ -15,6 +16,13 @@ class Extension
     $minHeight = (int) $addon->getConfig('iframe_min_height') ?: 300;
     $zoomFactor = (float) $addon->getConfig('iframe_zoom_factor') ?: 0.5;
     $sliceData = $ep->getParams();
+    // Other addons can opt a slice out of the iframe preview (e.g. modules without
+    // visible frontend markup). false keeps REDAXO's default preview - the module output
+    // rendered in the backend - and skips rendering and caching for this slice.
+    $enabled = rex_extension::registerPoint(new rex_extension_point('BLOCK_PEEK_SLICE_ENABLED', true, $sliceData));
+    if (!$enabled) {
+      return;
+    }
     $revision = $sliceData['revision'] ?? 0;
     $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id'], false, 0);
     if (!$slice) {
