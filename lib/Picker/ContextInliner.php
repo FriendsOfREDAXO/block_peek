@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FriendsOfRedaxo\BlockPeek\Picker;
 
 use FilesystemIterator;
+use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use rex_path;
@@ -17,16 +18,36 @@ final class ContextInliner
      */
     public static function files(string $moduleDir, array $globs, ?string $base = null): array
     {
-        $base = rtrim($base ?? rex_path::base(), '/') . '/';
+        $base = realpath($base ?? rex_path::base());
+        if ($base === false) {
+            return [];
+        }
+        $base = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $contained = static function (string $path) use ($base): bool {
+            $real = realpath($path);
+            return $real !== false && ($real === rtrim($base, DIRECTORY_SEPARATOR) || str_starts_with($real, $base));
+        };
+        $visible = static function (string $path) use ($base): bool {
+            foreach ([$path, realpath($path)] as $candidate) {
+                if ($candidate !== false && preg_match('~(?:^|/)\.(?!\.?(?:/|$))~', substr($candidate, strlen($base)))) {
+                    return false;
+                }
+            }
+            return true;
+        };
         $moduleDir = rtrim($moduleDir, '/') . '/';
         $matches = [];
         foreach ($globs as $pattern) {
             if (str_ends_with($pattern, '/**')) {
                 $dir = $base . substr($pattern, 0, -3);
-                if (!is_dir($dir)) {
+                if (!is_dir($dir) || !$contained($dir) || !$visible($dir)) {
                     continue;
                 }
-                foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $file) {
+                $iterator = new RecursiveCallbackFilterIterator(
+                    new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+                    static fn (\SplFileInfo $file): bool => $contained($file->getPathname()) && $visible($file->getPathname()),
+                );
+                foreach (new RecursiveIteratorIterator($iterator) as $file) {
                     if ($file->isFile()) {
                         $matches[] = $file->getPathname();
                     }
@@ -35,8 +56,13 @@ final class ContextInliner
                 array_push($matches, ...(glob($base . $pattern) ?: []));
             }
         }
+        $matches = array_filter($matches, static fn (string $file): bool => $visible($file)
+            && in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), ['css', 'scss', 'sass', 'less', 'js', 'mjs', 'cjs', 'ts', 'php', 'html', 'htm', 'twig', 'md'], true));
         sort($matches, SORT_STRING);
-        return array_values(array_unique(array_filter([$moduleDir . 'input.php', $moduleDir . 'output.php', ...$matches], 'is_file')));
+        return array_values(array_unique(array_filter(
+            [$moduleDir . 'input.php', $moduleDir . 'output.php', ...$matches],
+            static fn (string $file): bool => is_file($file) && $contained($file),
+        )));
     }
 
     /** @param list<string> $files */
@@ -49,12 +75,16 @@ final class ContextInliner
             if ($remaining <= 0) {
                 return $out . $truncated;
             }
-            $content = file_get_contents($file);
+            $content = file_get_contents($file, false, null, 0, $remaining + 4);
             if ($content === false) {
                 throw new RuntimeException('Unable to read context file: ' . $file);
             }
+            $cut = mb_strcut($content, 0, $remaining, 'UTF-8');
+            if (str_contains($content, "\0") || !mb_check_encoding($cut, 'UTF-8')) {
+                continue;
+            }
             $path = str_starts_with($file, rex_path::base()) ? substr($file, strlen(rex_path::base())) : $file;
-            $out .= '=== ' . $path . " ===\n" . mb_strcut($content, 0, $remaining, 'UTF-8') . "\n";
+            $out .= '=== ' . $path . " ===\n" . $cut . "\n";
             $remaining -= strlen($content);
             if ($remaining < 0) {
                 return $out . $truncated;
