@@ -1,5 +1,13 @@
 # Changelog
 
+## **10.11.2026 Version 1.6.0**
+
+- feat: optional searchable module picker with SVG wireframes, descriptions and existing module groups; disabled by default, with no picker assets or data loaded when off
+- feat: generate previews via auto-detected local Codex/Claude CLIs or an optional `ai_platform` profile; configurable prompt, context paths and visual references
+- feat: `block_peek:generate [--module=ID] [--force]` and an admin subpage for background generation, status and editable, lockable descriptions; read-only without a provider
+- fix: validate generated SVGs, preserve previous previews on generation failure and prevent concurrent runs with a lock
+- docs: document picker setup, prompt placeholders, preview storage/migration and local Deployer generation
+
 ## **01.10.2026 Version 1.5.0**
 
 Thanks to @anveno (#32) for the new extension point.
