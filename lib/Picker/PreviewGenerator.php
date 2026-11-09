@@ -67,9 +67,10 @@ final class PreviewGenerator
                 $status['current'] = $module['name'];
                 $writeStatus();
                 $slug = PreviewStore::slug($module['id'], $module['key']);
+                $old = null;
+                $hash = PreviewStore::hash($module['input'], $module['output']);
                 try {
                     $old = $this->store->get($slug);
-                    $hash = PreviewStore::hash($module['input'], $module['output']);
                     if (!$force && ($old['status'] ?? '') === 'ok' && ($old['hash'] ?? '') === $hash && $this->store->svg($slug) !== null) {
                         ++$counts['skipped'];
                         $report($module['name'] . ': skipped');
@@ -117,7 +118,18 @@ final class PreviewGenerator
                     $report($module['name'] . ': ' . $entry['status']);
                 } catch (Throwable $e) {
                     ++$counts['failed'];
-                    $report($module['name'] . ': failed: ' . $e->getMessage());
+                    $message = $module['name'] . ': failed: ' . $e->getMessage();
+                    try {
+                        $this->store->put($slug, [
+                            'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
+                            'description' => $old['description'] ?? '', 'locked' => (bool) ($old['locked'] ?? false),
+                            'hash' => $hash, 'model' => $this->provider->label(),
+                            'generated' => $old['generated'] ?? 0, 'status' => 'failed',
+                        ], null);
+                    } catch (Throwable $writeError) {
+                        $message .= '; unable to record failure: ' . $writeError->getMessage();
+                    }
+                    $report($message);
                 } finally {
                     ++$status['done'];
                     $writeStatus();
