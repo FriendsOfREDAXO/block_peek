@@ -6,6 +6,7 @@ namespace FriendsOfRedaxo\BlockPeek\Picker;
 
 use rex_file;
 use rex_path;
+use RuntimeException;
 
 final class PreviewStore
 {
@@ -29,7 +30,7 @@ final class PreviewStore
     /** @return array<string, array<string, mixed>> */
     public function all(): array
     {
-        $data = json_decode((string) rex_file::get($this->dir . 'previews.json', '{}'), true);
+        $data = json_decode((string) rex_file::get($this->dir . 'previews.json', '{}'), true, 512, JSON_THROW_ON_ERROR);
         return is_array($data) ? $data : [];
     }
 
@@ -48,10 +49,10 @@ final class PreviewStore
     /** @param array<string, mixed> $entry */
     public function put(string $slug, array $entry, ?string $svg): void
     {
-        if ($svg !== null) {
-            rex_file::put($this->svgPath($slug), $svg);
-        }
         $all = $this->all();
+        if ($svg !== null && !rex_file::put($this->svgPath($slug), $svg)) {
+            throw new RuntimeException('Unable to write preview SVG: ' . $slug);
+        }
         $all[$slug] = $entry;
         $this->save($all);
     }
@@ -76,8 +77,10 @@ final class PreviewStore
         $all = $this->all();
         $removed = array_map('strval', array_values(array_diff(array_keys($all), $keep))); // numeric slugs are int keys in PHP
         foreach ($removed as $slug) {
+            if (!rex_file::delete($this->svgPath($slug))) {
+                throw new RuntimeException('Unable to delete preview SVG: ' . $slug);
+            }
             unset($all[$slug]);
-            rex_file::delete($this->svgPath($slug));
         }
         if ($removed) {
             $this->save($all);
@@ -106,11 +109,14 @@ final class PreviewStore
     private function save(array $all): void
     {
         ksort($all, SORT_STRING);
-        rex_file::put($this->dir . 'previews.json', json_encode($all, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
+        $json = json_encode($all, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+        if (!rex_file::put($this->dir . 'previews.json', $json)) {
+            throw new RuntimeException('Unable to write preview index');
+        }
     }
 
     private function svgPath(string $slug): string
     {
-        return $this->dir . basename($slug) . '.svg';
+        return $this->dir . rawurlencode($slug) . '.svg';
     }
 }

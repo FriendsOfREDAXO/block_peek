@@ -9,7 +9,7 @@ use DOMElement;
 
 final class SvgValidator
 {
-    private const FORBIDDEN = ['script', 'foreignobject', 'image', 'style', 'text'];
+    private const FORBIDDEN = ['script', 'foreignobject', 'image', 'style', 'text', 'set', 'animate', 'animatemotion', 'animatetransform', 'discard'];
 
     public static function extract(string $raw): ?string
     {
@@ -20,21 +20,36 @@ final class SvgValidator
     /** @return list<string> */
     public static function errors(string $svg): array
     {
+        if (trim($svg) === '') {
+            return ['empty SVG'];
+        }
         $prev = libxml_use_internal_errors(true);
         $doc = new DOMDocument();
-        $ok = $doc->loadXML($svg, LIBXML_NONET);
-        libxml_clear_errors();
-        libxml_use_internal_errors($prev);
+        try {
+            $ok = $doc->loadXML($svg, LIBXML_NONET);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($prev);
+        }
+        if ($doc->doctype !== null) {
+            return ['DOCTYPE not allowed'];
+        }
         $root = $ok ? $doc->documentElement : null;
         if (!$root instanceof DOMElement) {
             return ['not well-formed XML'];
         }
 
         $errors = [];
+        if ($root->localName !== 'svg') {
+            $errors[] = 'root must be <svg>';
+        }
         if ($root->getAttribute('viewBox') !== '0 0 1440 900') {
             $errors[] = 'viewBox must be "0 0 1440 900"';
         }
         foreach ($doc->getElementsByTagName('*') as $el) {
+            if ($el->namespaceURI !== 'http://www.w3.org/2000/svg') {
+                $errors[] = 'elements must be in the SVG namespace';
+            }
             $name = strtolower($el->localName);
             if (in_array($name, self::FORBIDDEN, true)) {
                 $errors[] = "forbidden element <$name>";
