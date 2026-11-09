@@ -35,11 +35,12 @@ try {
     assert(array_map('strval', array_keys($s->all())) === ['6', 'team']);
 
     try {
-        $s->put('6', ['description' => "\xC3"] + $e, null);
+        $s->put('6', ['description' => "\xC3"] + $e, '<svg id="invalid-entry"/>');
         assert(false, 'invalid UTF-8 must throw');
     } catch (JsonException) {
     }
     assert(rex_file::get($dir . 'previews.json') === $json, 'encoding failure must preserve the index');
+    assert($s->svg('6') === '<svg/>', 'encoding failure must restore the previous SVG');
 
     rex_file::put($dir . 'previews.json', "<<<<<<< HEAD\n=======\n>>>>>>> branch\n");
     try {
@@ -70,6 +71,20 @@ try {
         chmod($dir . 'previews.json', 0644);
     }
     assert(rex_file::get($dir . 'previews.json') === $json);
+
+    foreach (['6', 'new'] as $slug) {
+        $previous = $s->svg($slug);
+        chmod($dir . 'previews.json', 0444);
+        try {
+            $s->put($slug, $e, '<svg id="replacement"/>');
+            assert(false, 'failed index write must throw after writing the SVG');
+        } catch (RuntimeException) {
+        } finally {
+            chmod($dir . 'previews.json', 0644);
+        }
+        assert($s->svg($slug) === $previous, 'failed index write must restore or remove the new SVG');
+        assert(rex_file::get($dir . 'previews.json') === $json);
+    }
 
     chmod($dir, 0555);
     try {

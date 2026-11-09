@@ -23,6 +23,8 @@ foreach (['picker', 'picker_provider', 'picker_cli_path', 'picker_command', 'pic
     $settings[$key] = [$addon->hasConfig($key), $addon->getConfig($key)];
 }
 $lock = null;
+$environment = ['HOME' => getenv('HOME'), 'PATH' => getenv('PATH')];
+$childPid = null;
 rex_dir::delete($dir);
 
 try {
@@ -55,6 +57,8 @@ try {
     $svg = $s->svg($slug);
 
     foreach (['garbage', 'badsvg'] as $mode) {
+        $previous = ['generated' => 123, 'model' => 'previous model', 'hash' => 'previous hash'] + $s->get($slug);
+        $s->put($slug, $previous, null);
         $counted = new class(new CliProvider($fake, '{bin} ' . $mode, 'stdout', 'm', 'e')) implements Provider {
             public int $calls = 0;
             public function __construct(private Provider $inner) {}
@@ -70,6 +74,9 @@ try {
         assert($counted->calls === 2, "$mode must retry exactly once");
         assert($s->get($slug)['status'] === 'failed' && $s->svg($slug) === $svg);
         assert($s->get($slug)['description'] === 'Hand');
+        foreach (['generated', 'model', 'hash'] as $key) {
+            assert($s->get($slug)[$key] === $previous[$key], "$mode must preserve previous $key");
+        }
     }
     assert($g->run($id, false, $logger)['generated'] === 1, 'failed entries must be retried without force');
 
@@ -80,6 +87,17 @@ try {
     } catch (RuntimeException $e) {
         assert(str_contains(strtolower($e->getMessage()), 'timeout'));
         assert(microtime(true) - $start < 3, 'timeout must not wait for the child to finish');
+    }
+    $pidFile = $dir . 'child.pid';
+    try {
+        (new CliProvider($fake, '{bin} slowchild ' . escapeshellarg($pidFile), 'stdout', 'm', 'e', 1))->generate('test', null);
+        assert(false, 'timeout with descendants must throw');
+    } catch (RuntimeException $e) {
+        assert(str_contains(strtolower($e->getMessage()), 'timeout'));
+        $childPid = (int) rex_file::get($pidFile);
+        assert($childPid > 0, 'slowchild must record its child PID');
+        assert(posix_kill($childPid, 0) === false, 'timeout must stop descendants');
+        $childPid = null;
     }
     assert(G::parse('x {"description":"d","svg":"<svg/>"} y')['svg'] === '<svg/>');
     assert(G::parse('<svg a></svg>')['description'] === '');
@@ -97,20 +115,78 @@ try {
         assert(str_contains($e->getMessage(), 'test failure'));
     }
     $argsCommand = '{bin} -r ' . escapeshellarg('stream_get_contents(STDIN); echo json_encode(array_slice($argv, 1));') . ' -- {model} {effort} {image_args}';
-    $hostile = "a' ; echo injected; #";
+    $hostile = "a' ; echo injected; # \$(printf injected)";
     assert(json_decode((new CliProvider(PHP_BINARY, $argsCommand, 'stdout', $hostile, 'e'))->generate('test', $hostile), true) === [$hostile, 'e', '-i', $hostile]);
-    assert(CliProvider::detect('missing-block-peek-cli', $fake) === realpath($fake));
+    foreach (['bin', 'model', 'effort', 'image_args', 'out', 'tmp'] as $placeholder) {
+        foreach (["'", '"'] as $quote) {
+            $template = '{bin} --value ' . $quote . '{' . $placeholder . '}' . $quote;
+            assert(CliProvider::templateErrors($template) !== [], 'quoted placeholders must be rejected');
+            try {
+                new CliProvider($fake, $template, 'stdout', 'm', 'e');
+                assert(false, 'constructor must reject quoted placeholders');
+            } catch (InvalidArgumentException) {
+            }
+        }
+    }
+    assert(CliProvider::templateErrors('{bin} {model} {effort} {image_args} {out} {tmp}') === []);
+    assert(CliProvider::templateErrors('{bin} --tools "Read Glob Grep" {model}') === []);
+    assert(CliProvider::templateErrors('{bin} \"{model}\"') === [], 'escaped quotes must not toggle quote state');
+    assert(CliProvider::templateErrors("{bin} 'literal \\' {model}") === [], 'backslash does not escape a single quote inside single quotes');
+
+    assert(CliProvider::detect('missing-block-peek-cli', $fake) === $fake);
+    assert(symlink($fake, $dir . 'claude'));
+    $detected = CliProvider::detect('claude', $dir . 'claude');
+    assert($detected === $dir . 'claude', 'detection must preserve the executable symlink');
+    assert((new CliProvider($detected, '{bin} argv0', 'stdout', 'opus', 'medium'))->generate('test', null) === 'claude');
+    assert((new CliProvider($detected, '{bin} ok', 'stdout', 'opus', 'medium'))->label() === 'claude opus medium');
     assert(CliProvider::detect('missing-block-peek-cli') === null);
 
     $addon->setConfig('picker_provider', 'none');
     assert(Providers::fromConfig() === null);
-    foreach (['codex', 'claude', 'auto'] as $provider) {
+    foreach (['codex', 'claude'] as $provider) {
         $addon->setConfig('picker_provider', $provider);
         $addon->setConfig('picker_cli_path', $fake);
         $addon->setConfig('picker_command', '{bin} ok');
         $addon->setConfig('picker_model', 'm');
         $addon->setConfig('picker_effort', 'e');
         assert(Providers::fromConfig()->generate('test', null) === $cli->generate('test', null));
+        assert(Providers::fromConfig()->label() === "$provider m e", 'explicit provider labels must use the preset name');
+    }
+
+    // Override HOME before the standard search directories so installed CLIs cannot affect these cases.
+    $fakeBin = $dir . 'home/.local/bin/';
+    rex_dir::create($fakeBin);
+    assert(symlink($fake, $fakeBin . 'codex') && symlink($fake, $fakeBin . 'claude'));
+    putenv('HOME=' . $dir . 'home');
+    putenv('PATH=' . $fakeBin . PATH_SEPARATOR . ($environment['PATH'] ?: ''));
+    $addon->setConfig('picker_command', '');
+    $addon->setConfig('picker_model', '');
+    $addon->setConfig('picker_effort', 'medium');
+    foreach (['codex' => ['file', 'gpt-6.1-sol'], 'claude' => ['json', 'opus']] as $provider => [$output, $model]) {
+        $addon->setConfig('picker_provider', $provider);
+        $addon->setConfig('picker_cli_path', $fakeBin . $provider);
+        $preset = Providers::fromConfig();
+        assert($preset instanceof CliProvider);
+        assert($preset->label() === "$provider $model medium");
+        assert(rtrim($preset->generate('test', null)) === rtrim($cli->generate('test', null)), "$provider preset must use $output output decoding");
+    }
+    $addon->setConfig('picker_provider', 'auto');
+    $addon->setConfig('picker_command', '{bin} path');
+    foreach ([$fakeBin . 'claude', $fake, ''] as $configured) {
+        $addon->setConfig('picker_cli_path', $configured);
+        assert(Providers::fromConfig()->label() === 'codex gpt-6.1-sol medium');
+        assert(Providers::fromConfig()->generate('test', null) === $fakeBin . 'codex', 'auto must detect codex before using a configured claude or unknown binary');
+    }
+    $addon->setConfig('picker_cli_path', $dir . 'claude');
+    assert(Providers::fromConfig()->generate('test', null) === $fakeBin . 'codex');
+    // An auto preset with a matching basename must still use the configured path.
+    rex_dir::create($dir . 'configured/');
+    assert(symlink($fake, $dir . 'configured/codex'));
+    $addon->setConfig('picker_cli_path', $dir . 'configured/codex');
+    $addon->setConfig('picker_command', '{bin} path');
+    assert(Providers::fromConfig()->generate('test', null) === $dir . 'configured/codex');
+    foreach ($environment as $key => $value) {
+        putenv($value === false ? $key : "$key=$value");
     }
 
     $addon->setConfig('picker_prompt', '{module_dir}|{module_name}|{context_paths}|{style_reference_block}|{reference_image_sentence}|{language}');
@@ -136,12 +212,16 @@ try {
     assert(str_contains($inspector->prompt, 'a/**, b.css') && str_contains($inspector->prompt, $svg));
     assert(str_ends_with($inspector->prompt, '|de') && $inspector->image === realpath($fake));
 
+    $previous = $s->get($slug);
     unlink($moduleDir . 'input.php');
     mkdir($moduleDir . 'input.php');
     try {
         assert(@$g->run($id, true, $logger)['failed'] === 1);
         assert($s->get($slug)['status'] === 'failed', 'module cache write failures must mark the preview failed');
         assert($s->svg($slug) === $svg);
+        foreach (['generated', 'model', 'hash'] as $key) {
+            assert($s->get($slug)[$key] === $previous[$key], "exception must preserve previous $key");
+        }
     } finally {
         @rmdir($moduleDir . 'input.php');
     }
@@ -153,7 +233,8 @@ try {
     rex_file::delete($dir . 'previews.json');
     $addon->setConfig('picker_style_module', '');
     $s->put('999999999', $entry, $svg);
-    $writeFailure = new class($cli, $dir) implements Provider {
+    $s->put($slug, $entry, $svg);
+    $writeFailure = new class(new CliProvider($fake, '{bin} different', 'stdout', 'm', 'e'), $dir) implements Provider {
         private int $calls = 0;
         public function __construct(private Provider $inner, private string $dir) {}
         public function generate(string $prompt, ?string $imagePath): string
@@ -165,6 +246,7 @@ try {
         public function inlineContext(): bool { return false; }
     };
     $counts = (new G($writeFailure, $s))->run(null, true, $logger);
+    assert($s->svg($slug) === $svg, 'index write failure must restore the previous SVG');
     assert($counts['failed'] === 1 && $counts['generated'] === count($modules) - 1, 'a store write failure must not stop the next module');
     assert($s->get('999999999') === null && $s->svg('999999999') === null, 'full run must remove numeric orphan slugs');
     $status = json_decode(rex_file::get(rex_path::addonCache('block_peek', 'picker/status.json')), true, 512, JSON_THROW_ON_ERROR);
@@ -190,6 +272,12 @@ try {
     exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(rex_path::bin('console')) . ' block_peek:generate 2>&1', $lines, $exit);
     assert($exit === 0 && str_contains(implode("\n", $lines), 'läuft bereits'), implode("\n", $lines));
 } finally {
+    foreach ($environment as $key => $value) {
+        putenv($value === false ? $key : "$key=$value");
+    }
+    if ($childPid !== null && $childPid > 0) {
+        @posix_kill($childPid, 9);
+    }
     if (is_resource($lock)) {
         flock($lock, LOCK_UN);
         fclose($lock);

@@ -21,7 +21,8 @@ final class Providers
             if (!isset($presets[$name])) {
                 continue;
             }
-            $bin = CliProvider::detect($name, (string) $addon->getConfig('picker_cli_path', ''));
+            $configuredPath = (string) $addon->getConfig('picker_cli_path', '');
+            $bin = CliProvider::detect($name, $provider !== 'auto' || basename($configuredPath) === $name ? $configuredPath : '');
             if ($bin === null) {
                 continue;
             }
@@ -29,7 +30,7 @@ final class Providers
             $custom = trim((string) $addon->getConfig('picker_command', ''));
             return new CliProvider($bin, $custom !== '' ? $custom : $template, $custom !== '' ? 'stdout' : $output,
                 trim((string) $addon->getConfig('picker_model', '')) ?: $model,
-                (string) $addon->getConfig('picker_effort', 'medium'));
+                (string) $addon->getConfig('picker_effort', 'medium'), 300, $name);
         }
         return null;
     }

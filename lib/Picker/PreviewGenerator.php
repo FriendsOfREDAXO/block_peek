@@ -109,8 +109,10 @@ final class PreviewGenerator
                     $entry = [
                         'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
                         'description' => ($old['locked'] ?? false) ? $old['description'] : ($result['description'] ?? $old['description'] ?? ''),
-                        'locked' => (bool) ($old['locked'] ?? false), 'hash' => $hash,
-                        'model' => $this->provider->label(), 'generated' => time(),
+                        'locked' => (bool) ($old['locked'] ?? false),
+                        'hash' => $result === null ? ($old['hash'] ?? '') : $hash,
+                        'model' => $result === null ? ($old['model'] ?? '') : $this->provider->label(),
+                        'generated' => $result === null ? ($old['generated'] ?? 0) : time(),
                         'status' => $result === null ? 'failed' : 'ok',
                     ];
                     $this->store->put($slug, $entry, $result['svg'] ?? null);
@@ -123,7 +125,7 @@ final class PreviewGenerator
                         $this->store->put($slug, [
                             'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
                             'description' => $old['description'] ?? '', 'locked' => (bool) ($old['locked'] ?? false),
-                            'hash' => $hash, 'model' => $this->provider->label(),
+                            'hash' => $old['hash'] ?? '', 'model' => $old['model'] ?? '',
                             'generated' => $old['generated'] ?? 0, 'status' => 'failed',
                         ], null);
                     } catch (Throwable $writeError) {

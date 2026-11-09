@@ -7,6 +7,7 @@ namespace FriendsOfRedaxo\BlockPeek\Picker;
 use rex_file;
 use rex_path;
 use RuntimeException;
+use Throwable;
 
 final class PreviewStore
 {
@@ -50,11 +51,22 @@ final class PreviewStore
     public function put(string $slug, array $entry, ?string $svg): void
     {
         $all = $this->all();
+        $previous = $svg !== null ? $this->svg($slug) : null;
         if ($svg !== null && !rex_file::put($this->svgPath($slug), $svg)) {
             throw new RuntimeException('Unable to write preview SVG: ' . $slug);
         }
         $all[$slug] = $entry;
-        $this->save($all);
+        try {
+            $this->save($all);
+        } catch (Throwable $e) {
+            if ($svg !== null) {
+                $restored = $previous === null ? rex_file::delete($this->svgPath($slug)) : rex_file::put($this->svgPath($slug), $previous);
+                if (!$restored) {
+                    throw new RuntimeException('Unable to restore previous preview SVG: ' . $slug, 0, $e);
+                }
+            }
+            throw $e;
+        }
     }
 
     public function setDescription(string $slug, string $text, bool $locked): void

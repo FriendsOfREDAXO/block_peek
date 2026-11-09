@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace FriendsOfRedaxo\BlockPeek\Picker;
 
+use InvalidArgumentException;
 use rex_dir;
 use rex_path;
 use RuntimeException;
@@ -17,7 +18,43 @@ final class CliProvider implements Provider
         private string $model,
         private string $effort,
         private int $timeout = 300,
-    ) {}
+        private string $preset = '',
+    ) {
+        $errors = self::templateErrors($template);
+        if ($errors !== []) {
+            throw new InvalidArgumentException(implode(' ', $errors));
+        }
+    }
+
+    /** @return list<string> */
+    public static function templateErrors(string $template): array
+    {
+        $errors = [];
+        $quote = null;
+        $escaped = false;
+        for ($i = 0, $length = strlen($template); $i < $length; ++$i) {
+            $char = $template[$i];
+            if ($quote !== null && $char === '{' && preg_match('/\\G\\{(?:bin|model|effort|image_args|out|tmp)\\}/', $template, $match, 0, $i)) {
+                $errors[] = 'Placeholder ' . $match[0] . ' must not be inside shell quotes.';
+            }
+            if ($escaped) {
+                $escaped = false;
+                continue;
+            }
+            if ($char === '\\' && $quote !== "'") {
+                $escaped = true;
+                continue;
+            }
+            if ($char === "'" || $char === '"') {
+                if ($quote === null) {
+                    $quote = $char;
+                } elseif ($quote === $char) {
+                    $quote = null;
+                }
+            }
+        }
+        return $errors;
+    }
 
     public static function detect(string $name, string $configuredPath = ''): ?string
     {
@@ -27,8 +64,8 @@ final class CliProvider implements Provider
             $paths[] = $dir . '/' . $name;
         }
         foreach ($paths as $path) {
-            $absolute = $path !== '' ? realpath($path) : false;
-            if ($absolute !== false && is_file($absolute) && is_executable($absolute)) {
+            $absolute = str_starts_with($path, '/') ? $path : getcwd() . '/' . $path;
+            if ($path !== '' && is_file($absolute) && is_executable($absolute)) {
                 return $absolute;
             }
         }
@@ -37,7 +74,7 @@ final class CliProvider implements Provider
 
     public function label(): string
     {
-        return basename($this->bin) . ' ' . $this->model . ' ' . $this->effort;
+        return ($this->preset ?: basename($this->bin)) . ' ' . $this->model . ' ' . $this->effort;
     }
 
     public function inlineContext(): bool
@@ -93,10 +130,29 @@ final class CliProvider implements Provider
                     break;
                 }
                 if (microtime(true) - $start >= $this->timeout) {
-                    proc_terminate($process);
-                    usleep(100000);
-                    if (proc_get_status($process)['running']) {
-                        proc_terminate($process, 9);
+                    $pids = [(int) $status['pid']];
+                    for ($i = 0; $i < count($pids); ++$i) {
+                        $children = [];
+                        exec('pgrep -P ' . $pids[$i], $children);
+                        foreach ($children as $child) {
+                            $pids[] = (int) $child;
+                        }
+                    }
+                    $pids = array_reverse($pids);
+                    foreach ($pids as $pid) {
+                        @posix_kill($pid, 15);
+                    }
+                    $deadline = microtime(true) + 1;
+                    do {
+                        proc_get_status($process);
+                        $pids = array_values(array_filter($pids, static fn (int $pid): bool => @posix_kill($pid, 0)));
+                        if ($pids === []) {
+                            break;
+                        }
+                        usleep(10000);
+                    } while (microtime(true) < $deadline);
+                    foreach ($pids as $pid) {
+                        @posix_kill($pid, 9);
                     }
                     throw new RuntimeException('CLI timeout after ' . $this->timeout . ' seconds');
                 }
