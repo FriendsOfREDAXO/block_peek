@@ -14,13 +14,25 @@ final class BackgroundRunner
     public static function phpBinary(): string
     {
         $configured = trim((string) rex_addon::get('block_peek')->getConfig('picker_php_path', ''));
-        return $configured !== '' ? $configured : (str_contains(basename(PHP_BINARY), 'fpm') ? PHP_BINDIR . '/php' : PHP_BINARY);
+        return $configured !== '' ? $configured : self::phpBinaryFor(PHP_BINARY, PHP_BINDIR);
+    }
+
+    private static function phpBinaryFor(string $binary, string $bindir): string
+    {
+        if (!str_contains(basename($binary), 'fpm')) {
+            return $binary;
+        }
+        $sibling = dirname($binary) . '/' . preg_replace('/-?fpm$/', '', basename($binary));
+        return is_executable($sibling) ? $sibling : $bindir . '/php';
     }
 
     public static function start(?int $moduleId, bool $force): bool
     {
+        if (self::status()['running'] ?? false) {
+            return false;
+        }
         $php = self::phpBinary();
-        $console = rex_path::base('bin/console');
+        $console = rex_path::bin('console');
         $dir = rex_path::addonCache('block_peek', 'picker/');
         if (!function_exists('exec') || !is_file($php) || !is_executable($php) || !is_file($console)
             || ($moduleId !== null && $moduleId < 1) || !rex_dir::create($dir)) {
@@ -40,6 +52,15 @@ final class BackgroundRunner
     public static function status(): array
     {
         $status = json_decode((string) rex_file::get(rex_path::addonCache('block_peek', 'picker/status.json'), ''), true);
-        return is_array($status) ? $status : ['running' => false];
+        if (!is_array($status)) {
+            return ['running' => false];
+        }
+        if ($status['running'] ?? false) {
+            $pid = (int) ($status['pid'] ?? 0);
+            $status['running'] = function_exists('posix_kill') && $pid > 0
+                ? posix_kill($pid, 0) !== false
+                : time() - (int) ($status['started'] ?? 0) <= 3600;
+        }
+        return $status;
     }
 }

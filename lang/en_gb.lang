@@ -88,3 +88,4 @@ block_peek_picker_outdated = outdated
 block_peek_picker_current = current
 block_peek_picker_locked = locked
 block_peek_picker_save = Save
+block_peek_picker_running = Generation is already running. Descriptions can be edited again after it finishes.

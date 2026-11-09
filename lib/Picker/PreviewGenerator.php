@@ -47,7 +47,7 @@ final class PreviewGenerator
         $modules = self::modules();
         $selected = array_values(array_filter($modules, static fn (array $m): bool => $moduleId === null || $m['id'] === $moduleId));
         $counts = ['generated' => 0, 'skipped' => 0, 'failed' => 0];
-        $status = ['running' => true, 'started' => time(), 'current' => '', 'done' => 0, 'total' => count($selected), 'log' => []];
+        $status = ['running' => true, 'pid' => getmypid(), 'started' => time(), 'current' => '', 'done' => 0, 'total' => count($selected), 'log' => []];
         $statusPath = rex_path::addonCache('block_peek', 'picker/status.json');
         $writeStatus = static function () use (&$status, $statusPath): void {
             if (!rex_file::put($statusPath, json_encode($status, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE))) {
@@ -110,6 +110,7 @@ final class PreviewGenerator
                         $result = null;
                         $report($module['name'] . ': ' . $error . ($attempt === 0 ? ' (retry)' : ''));
                     }
+                    $old = $this->store->get($slug);
                     $entry = [
                         'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
                         'description' => ($old['locked'] ?? false) ? $old['description'] : ($result['description'] ?? $old['description'] ?? ''),
@@ -126,6 +127,7 @@ final class PreviewGenerator
                     ++$counts['failed'];
                     $message = $module['name'] . ': failed: ' . $e->getMessage();
                     try {
+                        $old = $this->store->get($slug);
                         $this->store->put($slug, [
                             'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
                             'description' => $old['description'] ?? '', 'locked' => (bool) ($old['locked'] ?? false),

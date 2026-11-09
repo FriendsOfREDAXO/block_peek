@@ -107,6 +107,11 @@ final class PreviewStore
     public function forJs(array $modules): array
     {
         $all = $this->all();
+        foreach ($all as $slug => $entry) {
+            if (!is_array($entry) || !is_string($entry['description'] ?? null)) {
+                throw new RuntimeException('Invalid preview entry: ' . $slug);
+            }
+        }
         $out = [];
         foreach ($modules as $m) {
             $slug = self::slug($m['id'], $m['key']);

@@ -51,6 +51,21 @@ try {
     assert($g->run($id, false, $logger)['skipped'] === 1);
     assert($g->run($id, true, $logger)['generated'] === 1);
 
+    foreach (['ok', 'garbage'] as $mode) {
+        $s->setDescription($slug, 'Before run', false);
+        $duringCall = new class(static function () use ($s, $slug, $cli, $mode): string {
+            $s->setDescription($slug, 'Mid-run', true);
+            return $mode === 'ok' ? $cli->generate('test', null) : 'Sorry, no.';
+        }) implements Provider {
+            public function __construct(private Closure $generate) {}
+            public function generate(string $prompt, ?string $imagePath): string { return ($this->generate)(); }
+            public function label(): string { return 'mid-run-save'; }
+            public function inlineContext(): bool { return false; }
+        };
+        (new G($duringCall, $s))->run($id, true, $logger);
+        assert($s->get($slug)['description'] === 'Mid-run' && $s->get($slug)['locked'] === true, "$mode must preserve descriptions saved during the provider call");
+    }
+
     $s->setDescription($slug, 'Hand', true);
     assert($g->run($id, true, $logger)['generated'] === 1);
     assert($s->get($slug)['description'] === 'Hand' && $s->get($slug)['locked'] === true);
@@ -251,6 +266,7 @@ try {
     assert($s->get('999999999') === null && $s->svg('999999999') === null, 'full run must remove numeric orphan slugs');
     $status = json_decode(rex_file::get(rex_path::addonCache('block_peek', 'picker/status.json')), true, 512, JSON_THROW_ON_ERROR);
     assert($status['running'] === false && $status['done'] === count($modules) && $status['total'] === count($modules));
+    assert($status['pid'] === getmypid(), 'generation status must record the process PID');
     assert(is_int($status['started']) && $status['current'] === $modules[array_key_last($modules)]['name']);
     assert(count($status['log']) <= 50 && $status['log'] === array_slice($log, -count($status['log'])));
 

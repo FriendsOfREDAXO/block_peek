@@ -88,3 +88,4 @@ block_peek_picker_outdated = veraltet
 block_peek_picker_current = aktuell
 block_peek_picker_locked = gesperrt
 block_peek_picker_save = Speichern
+block_peek_picker_running = Generierung läuft bereits. Beschreibungen können nach Abschluss wieder bearbeitet werden.
