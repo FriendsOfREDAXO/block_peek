@@ -13,13 +13,13 @@ $dir = rex_path::addonCache('block_peek', 'test-store/');
 rex_dir::delete($dir);
 
 try {
-    assert(S::slug(6, null) === '6' && S::slug(6, '') === '6' && S::slug(6, 'hero') === 'hero');
+    assert(S::slug(6, null) === '6' && S::slug(6, '') === '6' && S::slug(6, 'hero') === 'key-hero');
     assert(S::hash('a', 'b') !== S::hash('ab', ''));
 
     $s = new S($dir);
     assert($s->all() === []);
     $e = ['id' => 6, 'key' => null, 'name' => 'Hero', 'description' => 'd', 'locked' => false, 'hash' => 'h', 'model' => 'm', 'generated' => 1, 'status' => 'ok'];
-    $s->put('team', ['id' => 22, 'key' => 'team', 'name' => 'Team'] + $e, '<svg id="t"/>');
+    $s->put('key-team', ['id' => 22, 'key' => 'team', 'name' => 'Team'] + $e, '<svg id="t"/>');
     $s->put('6', $e, '<svg/>');
     assert($s->get('6')['name'] === 'Hero' && $s->svg('6') === '<svg/>');
     $s->put('6', ['name' => 'Hero2'] + $e, null);
@@ -30,9 +30,15 @@ try {
     $js = $s->forJs([['id' => 22, 'key' => 'team'], ['id' => 99, 'key' => null]]);
     assert(isset($js[22]) && $js[22]['svg'] === '<svg id="t"/>' && !isset($js[99]));
 
+    $s->put(S::slug(23, '6'), ['id' => 23, 'key' => '6', 'description' => 'Numeric key'] + $e, '<svg id="key-six"/>');
+    $js = $s->forJs([['id' => 6, 'key' => null], ['id' => 23, 'key' => '6']]);
+    assert(S::slug(23, '6') === 'key-6');
+    assert($js === [6 => ['description' => 'Neu', 'svg' => '<svg/>'], 23 => ['description' => 'Numeric key', 'svg' => '<svg id="key-six"/>']], 'numeric module keys must not overwrite ID previews');
+    assert($s->removeOrphans(['6', 'key-team']) === ['key-6']);
+
     $json = (string) file_get_contents($dir . 'previews.json');
     assert(str_ends_with($json, "}\n"));
-    assert(array_map('strval', array_keys($s->all())) === ['6', 'team']);
+    assert(array_map('strval', array_keys($s->all())) === ['6', 'key-team']);
 
     try {
         $s->put('6', ['description' => "\xC3"] + $e, '<svg id="invalid-entry"/>');
@@ -88,7 +94,7 @@ try {
 
     chmod($dir, 0555);
     try {
-        @$s->removeOrphans(['team']);
+        @$s->removeOrphans(['key-team']);
         assert(false, 'failed SVG deletion must throw');
     } catch (RuntimeException) {
     } finally {
@@ -96,7 +102,7 @@ try {
     }
     assert(rex_file::get($dir . 'previews.json') === $json && $s->svg('6') === '<svg/>');
 
-    assert($s->removeOrphans(['team']) === ['6'] && $s->svg('6') === null);
+    assert($s->removeOrphans(['key-team']) === ['6'] && $s->svg('6') === null);
 
     $s->put('layout/hero', $e, '<svg id="layout"/>');
     $s->put('content/hero', $e, '<svg id="content"/>');
@@ -104,7 +110,7 @@ try {
     assert($s->svg('layout/hero') === '<svg id="layout"/>' && $s->svg('content/hero') === '<svg id="content"/>');
     assert(rex_file::get($dir . 'layout%2Fhero.svg') === '<svg id="layout"/>');
     assert($s->svg('layout%2Fhero') === '<svg id="percent"/>');
-    assert($s->removeOrphans(['team', 'content/hero', 'layout%2Fhero']) === ['layout/hero']);
+    assert($s->removeOrphans(['key-team', 'content/hero', 'layout%2Fhero']) === ['layout/hero']);
     assert($s->svg('layout/hero') === null && $s->svg('content/hero') === '<svg id="content"/>' && $s->svg('layout%2Fhero') === '<svg id="percent"/>');
 } finally {
     rex_dir::delete($dir);

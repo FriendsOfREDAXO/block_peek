@@ -64,7 +64,7 @@ final class CliProvider implements Provider
             $paths[] = $dir . '/' . $name;
         }
         foreach ($paths as $path) {
-            $absolute = str_starts_with($path, '/') ? $path : getcwd() . '/' . $path;
+            $absolute = str_starts_with($path, '/') ? $path : rex_path::base($path);
             if ($path !== '' && is_file($absolute) && is_executable($absolute)) {
                 return $absolute;
             }
@@ -130,29 +130,34 @@ final class CliProvider implements Provider
                     break;
                 }
                 if (microtime(true) - $start >= $this->timeout) {
-                    $pids = [(int) $status['pid']];
-                    for ($i = 0; $i < count($pids); ++$i) {
-                        $children = [];
-                        exec('pgrep -P ' . $pids[$i], $children);
-                        foreach ($children as $child) {
-                            $pids[] = (int) $child;
+                    if (function_exists('posix_kill')) {
+                        $pids = [(int) $status['pid']];
+                        for ($i = 0; $i < count($pids); ++$i) {
+                            $children = [];
+                            exec('pgrep -P ' . $pids[$i], $children);
+                            foreach ($children as $child) {
+                                $pids[] = (int) $child;
+                            }
                         }
-                    }
-                    $pids = array_reverse($pids);
-                    foreach ($pids as $pid) {
-                        @posix_kill($pid, 15);
-                    }
-                    $deadline = microtime(true) + 1;
-                    do {
-                        proc_get_status($process);
-                        $pids = array_values(array_filter($pids, static fn (int $pid): bool => @posix_kill($pid, 0)));
-                        if ($pids === []) {
-                            break;
+                        $pids = array_reverse($pids);
+                        foreach ($pids as $pid) {
+                            @posix_kill($pid, 15);
                         }
-                        usleep(10000);
-                    } while (microtime(true) < $deadline);
-                    foreach ($pids as $pid) {
-                        @posix_kill($pid, 9);
+                        $deadline = microtime(true) + 1;
+                        do {
+                            proc_get_status($process);
+                            $pids = array_values(array_filter($pids, static fn (int $pid): bool => @posix_kill($pid, 0)));
+                            if ($pids === []) {
+                                break;
+                            }
+                            usleep(10000);
+                        } while (microtime(true) < $deadline);
+                        foreach ($pids as $pid) {
+                            @posix_kill($pid, 9);
+                        }
+                    } else {
+                        // shortcut: descendants may survive without POSIX, use process supervision if full-tree cleanup is required.
+                        proc_terminate($process, 9);
                     }
                     throw new RuntimeException('CLI timeout after ' . $this->timeout . ' seconds');
                 }

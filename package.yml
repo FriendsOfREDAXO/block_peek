@@ -37,6 +37,7 @@ requires:
     version: '>=8.2'
 
 installer_ignore:
+  - tests
   - node_modules
   - assets-src
   - block_peek.zip

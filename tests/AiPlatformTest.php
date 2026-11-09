@@ -59,6 +59,13 @@ try {
     assert(ContextInliner::files($moduleDir, ['allowed/**'], $base) === $sourceFiles, 'recursive context must exclude secrets, unsupported extensions and hidden paths');
     assert(ContextInliner::files($moduleDir, ['allowed/*', 'allowed/.*', 'allowed/.hidden/*.css', 'allowed/sub/.*'], $base) === $sourceFiles, 'plain globs must enforce the same source-file policy');
 
+    foreach (['reference.css' => 'secret.pem', 'hidden.css' => '.hidden/x.css', 'dotfile.css' => '.secret.css', 'hidden.pem' => 'a.css', '.alias.css' => 'a.css'] as $alias => $target) {
+        assert(symlink($base . 'allowed/' . $target, $base . 'allowed/' . $alias));
+    }
+    foreach (['allowed/**', 'allowed/*', 'allowed/.*'] as $pattern) {
+        assert(ContextInliner::files($moduleDir, [$pattern], $base) === ($pattern === 'allowed/.*' ? [] : $sourceFiles), 'both symlink name and target must satisfy extension and dotfile filters: ' . $pattern);
+    }
+
     $largeFile = $dir . 'large.css';
     assert(rex_file::put($largeFile, str_repeat('a', 2_000_000)));
     memory_reset_peak_usage();
@@ -129,7 +136,7 @@ try {
     rex_config::set('block_peek', 'picker_ai_profile', 1);
     assert(Providers::fromConfig() === null);
 } finally {
-    foreach (['contained/allowed/link.css', 'contained/linked-dir', 'contained/allowed-alias'] as $link) {
+    foreach (['contained/allowed/link.css', 'contained/linked-dir', 'contained/allowed-alias', 'contained/allowed/reference.css', 'contained/allowed/hidden.css', 'contained/allowed/dotfile.css', 'contained/allowed/hidden.pem', 'contained/allowed/.alias.css'] as $link) {
         if (is_link($dir . $link)) {
             unlink($dir . $link);
         }

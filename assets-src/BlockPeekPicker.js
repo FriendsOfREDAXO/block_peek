@@ -31,11 +31,11 @@
 		bar.className = "bp-picker-bar";
 		const label = document.createElement("span");
 		label.className = "bp-picker-label";
-		label.textContent = "Modul suchen";
+		label.textContent = window.rex.block_peek_picker_i18n?.search_label ?? "Modul suchen";
 		const search = document.createElement("input");
 		search.type = "search";
 		search.className = "bp-picker-search form-control";
-		search.placeholder = "Modul suchen …";
+		search.placeholder = window.rex.block_peek_picker_i18n?.search_placeholder ?? "Modul suchen …";
 		bar.append(label, search);
 		panel.append(bar);
 

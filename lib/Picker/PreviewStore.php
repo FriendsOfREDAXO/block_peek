@@ -20,7 +20,7 @@ final class PreviewStore
 
     public static function slug(int $id, ?string $key): string
     {
-        return $key !== null && $key !== '' ? $key : (string) $id;
+        return $key !== null && $key !== '' ? 'key-' . $key : (string) $id;
     }
 
     public static function hash(string $input, string $output): string

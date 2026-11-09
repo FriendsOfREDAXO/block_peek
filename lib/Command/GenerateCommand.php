@@ -51,6 +51,10 @@ final class GenerateCommand extends rex_console_command
             return 0;
         }
         try {
+            if ($module !== null && !in_array((int) $module, array_column(PreviewGenerator::modules(), 'id'), true)) {
+                $io->error('Module ' . $module . ' does not exist.');
+                return 1;
+            }
             $provider = Providers::fromConfig();
             if ($provider === null) {
                 $io->error('Kein Provider für die Generierung verfügbar.');

@@ -89,6 +89,13 @@ try {
         assert(in_array($addon->getAssetsUrl('BlockPeekPicker.js'), rex_view::getJsFiles(), true) === $expected);
         assert(in_array($addon->getAssetsUrl('BlockPeekPicker.css'), rex_view::getCssFiles()['all'] ?? [], true) === $expected);
         assert(array_key_exists('block_peek_picker', rex_view::getJsProperties()) === ($expected && $corruptIndex === null));
+        assert(array_key_exists('block_peek_picker_i18n', rex_view::getJsProperties()) === $expected, 'search translations must use the picker gate');
+        if ($expected) {
+            assert(rex_view::getJsProperties()['block_peek_picker_i18n'] === [
+                'search_label' => rex_i18n::msg('block_peek_picker_search_label'),
+                'search_placeholder' => rex_i18n::msg('block_peek_picker_search_placeholder'),
+            ]);
+        }
         if ($corruptIndex !== null) {
             assert(count(\BlockPeekTests\CapturingLogger::$messages) > $loggedBefore, 'corrupt preview data must be logged without aborting boot');
             $oldIndex === null ? rex_file::delete($indexPath) : rex_file::put($indexPath, $oldIndex);

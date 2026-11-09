@@ -167,7 +167,9 @@ if (rex_addon::get('ai_platform')->isAvailable()) {
 foreach (['cli_path', 'command', 'model', 'effort', 'language'] as $setting) {
     $field = $form->addTextField('picker_' . $setting);
     $field->setLabel(rex_i18n::msg('block_peek_picker_' . $setting));
-    if ($setting === 'model') {
+    if ($setting === 'command') {
+        $field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_command_notice')));
+    } elseif ($setting === 'model') {
         $field->setAttribute('placeholder', $this->getConfig('picker_provider') === 'claude' ? 'opus' : 'gpt-6.1-sol');
     } elseif ($setting === 'language') {
         $field->setAttribute('placeholder', (string) rex::getProperty('lang'));

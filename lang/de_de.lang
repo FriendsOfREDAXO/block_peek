@@ -41,6 +41,8 @@ block_peek_force_fe = Frontend-Kontext erzwingen
 block_peek_force_fe_option = ja
 
 # Module picker
+block_peek_picker_search_label = Modul suchen
+block_peek_picker_search_placeholder = Modul suchen …
 block_peek_picker_title = Modul-Picker
 block_peek_picker_enabled = Modul-Picker aktivieren
 block_peek_picker_yes = ja
@@ -55,6 +57,7 @@ block_peek_picker_ai_profile = ai_platform-Profil
 block_peek_picker_ai_profile_notice = Max Tokens im Profil mindestens 8192
 block_peek_picker_cli_path = AI-CLI-Pfad
 block_peek_picker_command = Eigener CLI-Befehl (leer = Preset)
+block_peek_picker_command_notice = Ein eigener Befehl gilt für die jeweils ausgewählte CLI; auto kann Codex oder Claude wählen. Bei eigenem Befehl den Provider explizit setzen.
 block_peek_picker_model = Modell (leer = Preset)
 block_peek_picker_effort = Reasoning-Aufwand
 block_peek_picker_language = Sprache

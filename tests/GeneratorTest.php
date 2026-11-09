@@ -103,6 +103,14 @@ try {
         assert(str_contains(strtolower($e->getMessage()), 'timeout'));
         assert(microtime(true) - $start < 3, 'timeout must not wait for the child to finish');
     }
+    // Disable the actual extension function in a separate PHP runtime, without changing this suite's process.
+    $timeoutCode = '(new \\FriendsOfRedaxo\\BlockPeek\\Picker\\CliProvider(PHP_BINARY, ' . var_export('{bin} -r ' . escapeshellarg('sleep(5);'), true) . ', "stdout", "m", "e", 1))->generate("test", null);';
+    $lines = [];
+    $start = microtime(true);
+    exec(escapeshellarg(PHP_BINARY) . ' -d disable_functions=posix_kill ' . escapeshellarg(rex_path::bin('console')) . ' massif:exec-php ' . escapeshellarg($timeoutCode) . ' 2>&1', $lines, $exit);
+    assert($exit === 1 && str_contains(implode("\n", $lines), 'CLI timeout'), implode("\n", $lines));
+    assert(microtime(true) - $start < 2, 'without posix_kill the timeout must kill the direct process before proc_close');
+
     $pidFile = $dir . 'child.pid';
     try {
         (new CliProvider($fake, '{bin} slowchild ' . escapeshellarg($pidFile), 'stdout', 'm', 'e', 1))->generate('test', null);
@@ -155,6 +163,13 @@ try {
     assert((new CliProvider($detected, '{bin} argv0', 'stdout', 'opus', 'medium'))->generate('test', null) === 'claude');
     assert((new CliProvider($detected, '{bin} ok', 'stdout', 'opus', 'medium'))->label() === 'claude opus medium');
     assert(CliProvider::detect('missing-block-peek-cli') === null);
+    $cwd = getcwd();
+    try {
+        chdir(rex_path::frontend());
+        assert(CliProvider::detect('missing-block-peek-cli', substr($fake, strlen(rex_path::base()))) === $fake, 'relative CLI paths must resolve from the project root under FPM too');
+    } finally {
+        chdir($cwd);
+    }
 
     $addon->setConfig('picker_provider', 'none');
     assert(Providers::fromConfig() === null);
@@ -277,6 +292,14 @@ try {
     $addon->setConfig('picker_provider', 'none');
     assert($command->execute([]) === 1 && str_contains($command->getDisplay(), 'Provider'));
     assert($command->execute(['--module' => 'invalid']) === 1);
+
+    $missingId = max(array_column($modules, 'id')) + 1;
+    rex_config::save();
+    $lines = [];
+    exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(rex_path::bin('console')) . ' block_peek:generate --module=' . $missingId . ' 2>&1', $lines, $exit);
+    $display = implode("\n", $lines);
+    assert($exit === 1 && str_contains($display, 'Module ' . $missingId . ' does not exist'), $display);
+    assert(!str_contains($display, 'Generated:') && !str_contains($display, 'Provider'), 'missing module must be rejected before resolving a provider');
 
     // Hold the lock before starting the real command, so this can never invoke a real model.
     rex_dir::create(rex_path::addonCache('block_peek', 'picker/'));

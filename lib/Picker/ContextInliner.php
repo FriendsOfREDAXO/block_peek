@@ -56,8 +56,17 @@ final class ContextInliner
                 array_push($matches, ...(glob($base . $pattern) ?: []));
             }
         }
-        $matches = array_filter($matches, static fn (string $file): bool => $visible($file)
-            && in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), ['css', 'scss', 'sass', 'less', 'js', 'mjs', 'cjs', 'ts', 'php', 'html', 'htm', 'twig', 'md'], true));
+        $matches = array_filter($matches, static function (string $file) use ($visible): bool {
+            if (!$visible($file)) {
+                return false;
+            }
+            foreach ([$file, realpath($file)] as $path) {
+                if ($path === false || !in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['css', 'scss', 'sass', 'less', 'js', 'mjs', 'cjs', 'ts', 'php', 'html', 'htm', 'twig', 'md'], true)) {
+                    return false;
+                }
+            }
+            return true;
+        });
         sort($matches, SORT_STRING);
         return array_values(array_unique(array_filter(
             [$moduleDir . 'input.php', $moduleDir . 'output.php', ...$matches],

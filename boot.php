@@ -22,6 +22,10 @@ if ($addon->getConfig('inactive') !== '|1|') {
 if (rex::isBackend() && PickerBoot::shouldLoad($addon->getConfig('picker'), (string) rex_be_controller::getCurrentPage(), (bool) rex::getUser())) {
     rex_view::addJsFile($addon->getAssetsUrl('BlockPeekPicker.js'));
     rex_view::addCssFile($addon->getAssetsUrl('BlockPeekPicker.css'));
+    rex_view::setJsProperty('block_peek_picker_i18n', [
+        'search_label' => rex_i18n::msg('block_peek_picker_search_label'),
+        'search_placeholder' => rex_i18n::msg('block_peek_picker_search_placeholder'),
+    ]);
     rex_extension::register('PACKAGES_INCLUDED', static function () {
         try {
             $store = new PreviewStore();

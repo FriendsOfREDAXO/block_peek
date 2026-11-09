@@ -41,6 +41,8 @@ block_peek_force_fe = Force frontend context
 block_peek_force_fe_option = yes
 
 # Module picker
+block_peek_picker_search_label = Search modules
+block_peek_picker_search_placeholder = Search modules …
 block_peek_picker_title = Module picker
 block_peek_picker_enabled = Enable module picker
 block_peek_picker_yes = yes
@@ -55,6 +57,7 @@ block_peek_picker_ai_profile = ai_platform profile
 block_peek_picker_ai_profile_notice = Set Max Tokens in the profile to at least 8192
 block_peek_picker_cli_path = AI CLI path
 block_peek_picker_command = Custom CLI command (empty = preset)
+block_peek_picker_command_notice = A custom command applies to whichever CLI is selected; auto may choose Codex or Claude. Set the provider explicitly when using a custom command.
 block_peek_picker_model = Model (empty = preset)
 block_peek_picker_effort = Reasoning effort
 block_peek_picker_language = Language
