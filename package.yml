@@ -5,6 +5,14 @@ author: Friends Of REDAXO, Yves Torres
 supportpage: https://github.com/FriendsOfREDAXO/block_peek
 perm: block_peek[]
 
+console_commands:
+  block_peek:generate: FriendsOfRedaxo\BlockPeek\Command\GenerateCommand
+
+default_config:
+  picker_provider: auto
+  picker_effort: medium
+  picker_context_paths: "src/fragments/**\nsrc/assets/css/components/**\nsrc/assets/css/theme/tokens.css\nsrc/assets/css/utils/fluid-grid.css"
+
 page:
   title: 'translate:block_peek_title'
   icon: rex-icon fa-vr-cardboard
