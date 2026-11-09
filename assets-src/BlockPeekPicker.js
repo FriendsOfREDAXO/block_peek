@@ -14,6 +14,12 @@
 	}
 
 	function open(button, dropdown, menu) {
+		for (const native of document.querySelectorAll(".dropdown.open, .btn-group.open")) {
+			native.classList.remove("open");
+			for (const nativeToggle of native.querySelectorAll('[data-toggle="dropdown"]')) {
+				nativeToggle.setAttribute("aria-expanded", "false");
+			}
+		}
 		toggle = button;
 		panel = document.createElement("div");
 		panel.className = "bp-picker";
@@ -103,6 +109,12 @@
 				close(true);
 				return;
 			}
+			if (event.key === "Enter" && event.target === search) {
+				event.preventDefault();
+				rows.find((row) => !row.hidden)?.click();
+				return;
+			}
+			if (["Home", "End"].includes(event.key) && !event.target.closest(".bp-picker-row")) return;
 			if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
 			const visible = rows.filter((row) => !row.hidden);
 			if (!visible.length) return;
@@ -122,21 +134,33 @@
 		search.focus();
 	}
 
-	document.addEventListener("click", (event) => {
+	function handleToggle(event) {
 		if (window.rex?.page !== "content/edit" || !window.rex?.block_peek_picker) return;
 		const button = event.target.closest?.('.rex-slice-select [data-toggle="dropdown"]');
 		if (button) {
 			if (button.matches(':disabled, [disabled], [aria-disabled="true"]')) return;
+			if (event.type === "keydown") {
+				if (event.key === "Escape" && button === toggle && panel?.isConnected) {
+					event.preventDefault();
+					event.stopPropagation();
+					close(true);
+					return;
+				}
+				if (![" ", "Enter", "ArrowDown", "ArrowUp"].includes(event.key)) return;
+			}
 			const dropdown = button.closest(".dropdown") || button.parentElement;
 			const menu = dropdown.querySelector(".dropdown-menu");
 			if (!menu) return;
 			event.preventDefault();
 			event.stopPropagation();
-			const wasOpen = button === toggle && panel?.isConnected;
+			const wasOpen = event.type === "click" && button === toggle && panel?.isConnected;
 			close();
 			if (!wasOpen) open(button, dropdown, menu);
-		} else if (panel && !panel.contains(event.target)) {
+		} else if (event.type === "click" && panel && !panel.contains(event.target)) {
 			close();
 		}
-	}, true);
+	}
+
+	document.addEventListener("click", handleToggle, true);
+	document.addEventListener("keydown", handleToggle, true);
 })();
