@@ -39,3 +39,52 @@ block_peek_iframe_zoom_factor = iFrame Zoom-Stufe
 
 block_peek_force_fe = Frontend-Kontext erzwingen
 block_peek_force_fe_option = ja
+
+# Module picker
+block_peek_picker_title = Modul-Picker
+block_peek_picker_enabled = Modul-Picker aktivieren
+block_peek_picker_yes = ja
+block_peek_picker_enabled_notice = Aus = natives Modul-Dropdown, keine Generierung
+block_peek_picker_provider = Provider
+block_peek_picker_provider_auto = automatisch
+block_peek_picker_provider_codex = Codex
+block_peek_picker_provider_claude = Claude
+block_peek_picker_provider_ai_platform = ai_platform
+block_peek_picker_provider_none = keiner
+block_peek_picker_ai_profile = ai_platform-Profil
+block_peek_picker_ai_profile_notice = Max Tokens im Profil mindestens 8192
+block_peek_picker_cli_path = AI-CLI-Pfad
+block_peek_picker_command = Eigener CLI-Befehl (leer = Preset)
+block_peek_picker_model = Modell (leer = Preset)
+block_peek_picker_effort = Reasoning-Aufwand
+block_peek_picker_language = Sprache
+block_peek_picker_context_paths = Kontext-Pfade (ein Glob pro Zeile)
+block_peek_picker_prompt = Prompt
+block_peek_picker_prompt_notice = leer = Standard-Prompt. Platzhalter: {module_dir}, {module_name}, {context_paths}, {style_reference_block}, {reference_image_sentence}, {language}
+block_peek_picker_show_default = Standard anzeigen
+block_peek_picker_style_module = Stilreferenz-Modul
+block_peek_picker_none = keine
+block_peek_picker_reference_image = Referenzbild (Pfad relativ zum Projekt)
+block_peek_picker_php_path = PHP-CLI-Pfad (leer = automatisch)
+block_peek_picker_disabled = Der Modul-Picker ist deaktiviert. Aktivierung in den Einstellungen:
+block_peek_picker_settings = Einstellungen
+block_peek_picker_provider_error = Provider-Konfiguration konnte nicht geladen werden. Einstellungen prüfen.
+block_peek_picker_csrf_error = Ungültiges CSRF-Token. Seite neu laden und erneut versuchen.
+block_peek_picker_saved = Beschreibung gespeichert.
+block_peek_picker_started = Generierung im Hintergrund gestartet.
+block_peek_picker_start_error = Generierung konnte nicht gestartet werden. PHP-CLI-Pfad und Cache prüfen.
+block_peek_picker_store_error = Vorschaudaten konnten nicht geladen oder gespeichert werden. Details im System-Log.
+block_peek_picker_progress = Fortschritt:
+block_peek_picker_read_only = Generierung und Bearbeitung benötigen eine lokale AI-CLI. Ohne verfügbaren Provider bleibt diese Seite schreibgeschützt.
+block_peek_picker_generate = Fehlende/veraltete generieren
+block_peek_picker_generate_all = Alle neu generieren
+block_peek_picker_thumbnail = Vorschau
+block_peek_picker_name = Modul
+block_peek_picker_status = Status
+block_peek_picker_description = Beschreibung
+block_peek_picker_failed = fehlgeschlagen
+block_peek_picker_missing = fehlt
+block_peek_picker_outdated = veraltet
+block_peek_picker_current = aktuell
+block_peek_picker_locked = gesperrt
+block_peek_picker_save = Speichern

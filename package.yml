@@ -21,6 +21,10 @@ page:
     settings:
       title: 'translate:block_peek_settings'
       icon: rex-icon fa-cog
+    picker:
+      title: 'translate:block_peek_picker_title'
+      icon: rex-icon fa-th-large
+      perm: admin[]
     docs:
       title: 'translate:block_peek_docs'
       subPath: README.md

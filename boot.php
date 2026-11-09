@@ -1,6 +1,9 @@
 <?php
 
 use FriendsOfRedaxo\BlockPeek\TemplateListHider;
+use FriendsOfRedaxo\BlockPeek\Picker\PickerBoot;
+use FriendsOfRedaxo\BlockPeek\Picker\PreviewGenerator;
+use FriendsOfRedaxo\BlockPeek\Picker\PreviewStore;
 
 /** @var rex_addon_interface $addon */
 $addon = $this;
@@ -14,6 +17,19 @@ if ($addon->getConfig('inactive') !== '|1|') {
             rex_extension::register('SLICE_BE_PREVIEW', \FriendsOfRedaxo\BlockPeek\Extension::register(...), rex_extension::LATE);
         });
     }
+}
+
+if (rex::isBackend() && PickerBoot::shouldLoad($addon->getConfig('picker'), (string) rex_be_controller::getCurrentPage(), (bool) rex::getUser())) {
+    rex_view::addJsFile($addon->getAssetsUrl('BlockPeekPicker.js'));
+    rex_view::addCssFile($addon->getAssetsUrl('BlockPeekPicker.css'));
+    rex_extension::register('PACKAGES_INCLUDED', static function () {
+        try {
+            $store = new PreviewStore();
+            rex_view::setJsProperty('block_peek_picker', $store->forJs(PreviewGenerator::modules()));
+        } catch (Throwable $e) {
+            rex_logger::logException($e);
+        }
+    });
 }
 
 // Remove preview cache files along with their slice/article — regardless of the

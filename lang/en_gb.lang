@@ -39,3 +39,52 @@ block_peek_iframe_zoom_factor = iFrame zoom level
 
 block_peek_force_fe = Force frontend context
 block_peek_force_fe_option = yes
+
+# Module picker
+block_peek_picker_title = Module picker
+block_peek_picker_enabled = Enable module picker
+block_peek_picker_yes = yes
+block_peek_picker_enabled_notice = Off = native module dropdown, no generation
+block_peek_picker_provider = Provider
+block_peek_picker_provider_auto = automatic
+block_peek_picker_provider_codex = Codex
+block_peek_picker_provider_claude = Claude
+block_peek_picker_provider_ai_platform = ai_platform
+block_peek_picker_provider_none = none
+block_peek_picker_ai_profile = ai_platform profile
+block_peek_picker_ai_profile_notice = Set Max Tokens in the profile to at least 8192
+block_peek_picker_cli_path = AI CLI path
+block_peek_picker_command = Custom CLI command (empty = preset)
+block_peek_picker_model = Model (empty = preset)
+block_peek_picker_effort = Reasoning effort
+block_peek_picker_language = Language
+block_peek_picker_context_paths = Context paths (one glob per line)
+block_peek_picker_prompt = Prompt
+block_peek_picker_prompt_notice = Empty = default prompt. Placeholders: {module_dir}, {module_name}, {context_paths}, {style_reference_block}, {reference_image_sentence}, {language}
+block_peek_picker_show_default = Show default
+block_peek_picker_style_module = Style reference module
+block_peek_picker_none = none
+block_peek_picker_reference_image = Reference image (path relative to project)
+block_peek_picker_php_path = PHP CLI path (empty = automatic)
+block_peek_picker_disabled = The module picker is disabled. Enable it in settings:
+block_peek_picker_settings = Settings
+block_peek_picker_provider_error = Could not load the provider configuration. Check settings.
+block_peek_picker_csrf_error = Invalid CSRF token. Reload the page and try again.
+block_peek_picker_saved = Description saved.
+block_peek_picker_started = Generation started in the background.
+block_peek_picker_start_error = Could not start generation. Check the PHP CLI path and cache.
+block_peek_picker_store_error = Could not load or save preview data. See the system log for details.
+block_peek_picker_progress = Progress:
+block_peek_picker_read_only = Generation and editing require a local AI CLI. Without an available provider this page is read-only.
+block_peek_picker_generate = Generate missing/outdated previews
+block_peek_picker_generate_all = Regenerate all
+block_peek_picker_thumbnail = Preview
+block_peek_picker_name = Module
+block_peek_picker_status = Status
+block_peek_picker_description = Description
+block_peek_picker_failed = failed
+block_peek_picker_missing = missing
+block_peek_picker_outdated = outdated
+block_peek_picker_current = current
+block_peek_picker_locked = locked
+block_peek_picker_save = Save
