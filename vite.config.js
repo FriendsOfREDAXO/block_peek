@@ -47,6 +47,8 @@ export default defineConfig({
 				BlockPeekCSS: resolve(__dirname, "assets-src/BlockPeek.css"),
 				BlockPeek: resolve(__dirname, "assets-src/BlockPeek.js"),
 				BlockPeekPoster: resolve(__dirname, "assets-src/BlockPeekPoster.js"),
+				BlockPeekPicker: resolve(__dirname, "assets-src/BlockPeekPicker.js"),
+				BlockPeekPickerCSS: resolve(__dirname, "assets-src/BlockPeekPicker.css"),
 			},
 			output: {
 				// Naming pattern for assets
@@ -56,6 +58,9 @@ export default defineConfig({
 					if (ext === "css") {
 						if (assetInfo.name === "BlockPeekCSS.css") {
 							return "BlockPeek.css";
+						}
+						if (assetInfo.name === "BlockPeekPickerCSS.css") {
+							return "BlockPeekPicker.css";
 						}
 						return `[name].css`;
 					}
