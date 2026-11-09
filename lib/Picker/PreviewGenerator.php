@@ -83,13 +83,17 @@ final class PreviewGenerator
                     $reference = trim((string) $addon->getConfig('picker_reference_image', ''));
                     $image = $reference !== '' ? realpath(rex_path::base($reference)) : false;
                     $image = $image !== false && is_file($image) ? $image : null;
+                    $globs = PromptBuilder::contextPaths((string) $addon->getConfig('picker_context_paths', ''));
                     $prompt = PromptBuilder::build(PromptBuilder::template(), [
                         'module_dir' => rtrim($dir, '/'), 'module_name' => $module['name'],
-                        'context_paths' => PromptBuilder::contextPaths((string) $addon->getConfig('picker_context_paths', '')),
+                        'context_paths' => $globs,
                         'style_reference' => $this->store->svg((string) $addon->getConfig('picker_style_module', '')) ?? '',
                         'reference_image' => $image ?? '',
                         'language' => (string) ($addon->getConfig('picker_language', '') ?: rex::getProperty('lang')),
                     ]);
+                    if ($this->provider->inlineContext()) {
+                        $prompt .= "\n\nThe files below are included inline. Do not try to read files.\n\n" . ContextInliner::inline(ContextInliner::files($dir, $globs));
+                    }
                     $result = null;
                     $error = '';
                     for ($attempt = 0; $attempt < 2; ++$attempt) {
