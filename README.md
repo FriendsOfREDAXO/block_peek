@@ -58,7 +58,7 @@ Im REDAXO-Projektverzeichnis:
 bin/console block_peek:generate [--module=ID] [--force]
 ```
 
-Ohne Optionen werden fehlende, fehlgeschlagene oder nach Änderungen am Modul-Input/-Output veraltete Vorschauen generiert. `--module=ID` beschränkt den Lauf auf ein Modul, `--force` generiert auch unveränderte Vorschauen neu. Bei Fehlern bleibt das bisherige SVG erhalten; weitere Module werden verarbeitet. Die Abschlusszeile nennt `Generated`, `skipped` und `failed` — auch bei einzelnen Fehlschlägen kann der Exit-Code 0 sein.
+Ohne Optionen werden fehlende, fehlgeschlagene oder veraltete Vorschauen generiert (Modul-Input/-Output oder eine gemeldete Quelldatei geändert). `--module=ID` beschränkt den Lauf auf ein Modul, `--force` generiert auch unveränderte Vorschauen neu. Bei Fehlern bleibt das bisherige SVG erhalten; weitere Module werden verarbeitet. Die Abschlusszeile nennt `Generated`, `skipped` und `failed` — auch bei einzelnen Fehlschlägen kann der Exit-Code 0 sein.
 
 Die Admin-Unterseite **BlockPeek → Modul-Picker** zeigt Vorschauen und Status, startet die Generierung im Hintergrund und erlaubt das Bearbeiten und Sperren von Beschreibungen gegen AI-Überschreiben. Ohne verfügbaren Provider bleibt sie schreibgeschützt. Falls der Hintergrundstart unter PHP-FPM/Herd scheitert, `picker_php_path` auf die PHP-CLI setzen. Gleichzeitige Generierungsläufe werden per Lock verhindert.
 
@@ -81,7 +81,7 @@ Lokale CLIs lesen die im Prompt angegebenen Pfade selbst. Für `ai_platform` bet
 
 ### Speicherung und Deployment
 
-SVGs und `previews.json` liegen im Addon-Datenverzeichnis, bei MASSIF unter `var/data/addons/block_peek/previews/`. Dieses Verzeichnis committen und bei Migrationen bzw. Deployments mitnehmen. Modul-Keys dienen als stabile Zuordnung, ohne Key wird die Modul-ID verwendet; diese muss im Zielsystem passen. Nach Änderungen am Modul-Input/-Output erneut generieren; nach Prompt-, Stil- oder Kontextänderungen `--force` verwenden.
+SVGs und `previews.json` liegen im Addon-Datenverzeichnis, bei MASSIF unter `var/data/addons/block_peek/previews/`. Dieses Verzeichnis committen und bei Migrationen bzw. Deployments mitnehmen. Modul-Keys dienen als stabile Zuordnung, ohne Key wird die Modul-ID verwendet; diese muss im Zielsystem passen. Nach Änderungen am Modul oder an gemeldeten Quelldateien erneut generieren; nach Prompt-, Stil- oder Kontextänderungen `--force` verwenden.
 
 Falls `.gitignore` die Regel `var/data/addons/*/*` enthält, danach freigeben:
 

@@ -70,6 +70,7 @@ try {
     $addon->setConfig('picker_prompt', 'Custom prompt for {module_name}.');
     (new G($capture, $s))->run($id, true, $logger);
     $settings['picker_prompt'][0] ? $addon->setConfig('picker_prompt', $settings['picker_prompt'][1]) : $addon->removeConfig('picker_prompt');
+    assert(str_contains(G::SOURCES_INSTRUCTION, 'not generated build output'), 'hashed build files would flag previews on every build');
     assert(count($prompts) === 2 && str_contains($prompts[0], G::SOURCES_INSTRUCTION) && str_contains($prompts[1], G::SOURCES_INSTRUCTION), 'default and custom prompts must ask for sources');
 
     $fixture = (string) realpath($fake);

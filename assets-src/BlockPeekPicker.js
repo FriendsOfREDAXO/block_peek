@@ -103,11 +103,10 @@
 			if (state) {
 				const dot = document.createElement("span");
 				dot.className = "bp-picker-dot";
+				// Label via attributes only: row text feeds the search filter.
 				dot.title = stale.labels[state];
-				const label = document.createElement("span");
-				label.className = "sr-only";
-				label.textContent = stale.labels[state];
-				dot.append(label);
+				dot.setAttribute("role", "img");
+				dot.setAttribute("aria-label", stale.labels[state]);
 				name.append(dot);
 			}
 			const description = document.createElement("div");

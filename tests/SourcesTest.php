@@ -10,6 +10,7 @@ if (ini_get('zend.assertions') !== '1') {
 }
 
 $base = rex_path::addonCache('block_peek', 'test-sources/');
+$outside = rex_path::addonCache('block_peek', 'test-sources-outside.txt');
 rex_dir::delete($base);
 
 try {
@@ -38,6 +39,19 @@ try {
     unlink($base . 'sub/b.css');
     assert(Sources::changed($s, $base), 'a deleted source counts as changed');
     assert(!Sources::changed([], $base));
+
+    // Review fixes: malformed paths never throw; symlinks are checked by reported and resolved path; rechecks stay inside the project.
+    assert(array_keys(Sources::collect(["a\0.php", 'a.php'], $base, $x)) === ['a.php'], 'a NUL byte must not fail the generation');
+    rex_file::put($base . 'sub/b.css', 'b');
+    symlink($base . 'sub/b.css', $base . '.hidden/link.css');
+    assert(Sources::collect(['.hidden/link.css'], $base, $x) === [], 'a hidden reported path is rejected even if its target is visible');
+    rex_file::put($outside, 'b');
+    $s = Sources::collect(['sub/b.css'], $base, $x);
+    unlink($base . 'sub/b.css');
+    symlink($outside, $base . 'sub/b.css');
+    assert(Sources::changed($s, $base), 'a source replaced by a symlink out of the project counts as changed');
+    assert(Sources::changed(['../' . basename($outside) => sha1_file($outside)], $base), 'stored paths outside the project count as changed');
 } finally {
     rex_dir::delete($base);
+    rex_file::delete($outside);
 }
