@@ -62,6 +62,8 @@ Ohne Optionen werden fehlende, fehlgeschlagene oder nach Änderungen am Modul-In
 
 Die Admin-Unterseite **BlockPeek → Modul-Picker** zeigt Vorschauen und Status, startet die Generierung im Hintergrund und erlaubt das Bearbeiten und Sperren von Beschreibungen gegen AI-Überschreiben. Ohne verfügbaren Provider bleibt sie schreibgeschützt. Falls der Hintergrundstart unter PHP-FPM/Herd scheitert, `picker_php_path` auf die PHP-CLI setzen. Gleichzeitige Generierungsläufe werden per Lock verhindert.
 
+Bei jeder Generierung meldet die AI die Projektdateien, auf denen die Vorschau beruht (z. B. Fragmente, Klassen, CSS/JS); BlockPeek speichert deren Fingerprints. Eine Vorschau gilt als **nicht aktuell**, wenn sie fehlt, ihre Generierung fehlgeschlagen ist oder sich das Modul oder eine dieser Dateien geändert hat; „Fehlende/veraltete generieren“ erneuert genau diese. Vorschauen aus älteren Versionen reagieren bis zur nächsten Generierung nur auf Änderungen am Modul selbst.
+
 ### Prompt und Kontext
 
 `picker_prompt` ist in den Einstellungen editierbar; leer verwendet `templates/picker-prompt.md`, einsehbar über **Standard anzeigen**. Platzhalter: `{module_dir}` (temporäres Verzeichnis mit `input.php` und `output.php`), `{module_name}`, `{context_paths}`, `{style_reference_block}`, `{reference_image_sentence}`, `{language}`. Stilreferenz und Referenzbild lassen sich separat wählen; der Bildpfad ist relativ zum Projektverzeichnis. Eine leere Sprache verwendet `rex::getProperty('lang')`.

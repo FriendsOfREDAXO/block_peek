@@ -52,6 +52,37 @@ try {
     assert($g->run($id, false, $logger)['skipped'] === 1);
     assert($g->run($id, true, $logger)['generated'] === 1);
 
+    // Sources: every prompt asks for them, parse() keeps strings only, run() stores fingerprints.
+    assert(G::parse('{"description":"d","svg":"<svg/>","sources":["a.php",3]}')['sources'] === ['a.php']);
+    assert(G::parse('{"description":"d","svg":"<svg/>","sources":"a.php"}')['sources'] === []);
+    assert(G::parse('{"description":"d","svg":"<svg/>"}')['sources'] === []);
+    $prompts = [];
+    $capture = new class(static function (string $prompt) use (&$prompts, $cli): string {
+        $prompts[] = $prompt;
+        return $cli->generate('test', null);
+    }) implements Provider {
+        public function __construct(private Closure $generate) {}
+        public function generate(string $prompt, ?string $imagePath): string { return ($this->generate)($prompt); }
+        public function label(): string { return 'capture'; }
+        public function inlineContext(): bool { return false; }
+    };
+    (new G($capture, $s))->run($id, true, $logger);
+    $addon->setConfig('picker_prompt', 'Custom prompt for {module_name}.');
+    (new G($capture, $s))->run($id, true, $logger);
+    $settings['picker_prompt'][0] ? $addon->setConfig('picker_prompt', $settings['picker_prompt'][1]) : $addon->removeConfig('picker_prompt');
+    assert(count($prompts) === 2 && str_contains($prompts[0], G::SOURCES_INSTRUCTION) && str_contains($prompts[1], G::SOURCES_INSTRUCTION), 'default and custom prompts must ask for sources');
+
+    $fixture = (string) realpath($fake);
+    $relative = substr($fixture, strlen((string) realpath(rex_path::base())) + 1);
+    $withSources = new CliProvider($fake, '{bin} sources', 'stdout', 'm', 'e');
+    assert((new G($withSources, $s))->run($id, true, $logger)['generated'] === 1);
+    assert($s->get($slug)['sources'] === [$relative => sha1_file($fixture)], 'only existing sources inside the project are stored');
+    $s->put($slug, ['sources' => [$relative => 'stale']] + $s->get($slug), null);
+    assert((new G($withSources, $s))->run($id, false, $logger)['generated'] === 1, 'a changed source must not be skipped');
+    $kept = $s->get($slug)['sources'];
+    (new G(new CliProvider($fake, '{bin} garbage', 'stdout', 'm', 'e'), $s))->run($id, true, $logger);
+    assert($s->get($slug)['sources'] === $kept, 'failed runs keep the previous sources');
+
     foreach (['ok', 'garbage'] as $mode) {
         $s->setDescription($slug, 'Before run', false);
         $duringCall = new class(static function () use ($s, $slug, $cli, $mode): string {
@@ -266,7 +297,7 @@ try {
     assert((new G($inspector, $s))->run($id, true, $logger)['generated'] === 1);
     assert(str_contains($inspector->prompt, rtrim($moduleDir, '/')) && str_contains($inspector->prompt, $m['name']));
     assert(str_contains($inspector->prompt, 'a/**, b.css') && str_contains($inspector->prompt, $svg));
-    assert(str_ends_with($inspector->prompt, '|de') && $inspector->image === realpath($fake));
+    assert(str_ends_with($inspector->prompt, "|de\n\n" . G::SOURCES_INSTRUCTION) && $inspector->image === realpath($fake));
 
     $previous = $s->get($slug);
     unlink($moduleDir . 'input.php');
