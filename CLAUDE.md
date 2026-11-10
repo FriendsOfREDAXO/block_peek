@@ -29,7 +29,7 @@ Names: `SvgValidator`, `PreviewStore`, `PromptBuilder`, `Generator`, `AiPlatform
 
 ## Version is in package.yml, not package.json
 
-`package.yml` is the single source of truth for the addon version. `vite.config.js` reads it directly, and `scripts/sync-version.js` (run via `prebuild`) copies it into `package.json`. When bumping the version, edit `package.yml` and let the build sync the rest. Also update `CHANGELOG.md`.
+`package.yml` is the single source of truth for the addon version. `vite.config.mjs` reads it directly, and `scripts/sync-version.js` (run via `prebuild`) copies it into `package.json`. When bumping the version, edit `package.yml` and let the build sync the rest. Also update `CHANGELOG.md`.
 
 ## Architecture
 
@@ -74,6 +74,6 @@ No Composer: the addon has no PHP dependencies, and REDAXO autoloads `lib/` itse
 
 ## Release / packaging
 
-`.github/workflows/publish-to-redaxo.yml` runs on GitHub Release publish: zips the repo (excluding `assets-src/`, `scripts/`, `node_modules`, dotfiles, `*.json` package files, `vite.config.js`, etc. — see the workflow for the full list), uploads the zip to the release, and pushes to MyREDAXO via `FriendsOfREDAXO/installer-action`. The `installer_ignore` list in `package.yml` mirrors most of these exclusions for the in-REDAXO installer path.
+`.github/workflows/publish-to-redaxo.yml` runs on GitHub Release publish: zips the repo (excluding `assets-src/`, `scripts/`, `node_modules`, dotfiles, `*.json` package files, `vite.config.mjs`, etc. — see the workflow for the full list), uploads the zip to the release, and pushes to MyREDAXO via `FriendsOfREDAXO/installer-action`. The `installer_ignore` list in `package.yml` mirrors most of these exclusions for the in-REDAXO installer path.
 
 Build artifacts under `assets/` ARE committed and shipped — do not add them to `.gitignore`.

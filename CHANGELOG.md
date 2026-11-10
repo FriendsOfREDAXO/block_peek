@@ -1,5 +1,11 @@
 # Changelog
 
+## **10.11.2026 Version 1.6.0-beta2**
+
+- chore: bumped dev dependencies to resolve security alerts (vite 8.3.7, fast-uri 3.1.9, postcss-selector-parser 7.2.0, source-map-js 1.2.2); assets rebuilt
+- chore: Vite config is now native ESM (`vite.config.mjs`), silencing the `configLoader: 'native'` deprecation warning
+- chore: `package-lock.json` version synced with the addon version
+
 ## **10.11.2026 Version 1.6.0-beta1**
 
 - feat: optional searchable module picker with SVG wireframes, descriptions and existing module groups; disabled by default, with no picker assets or data loaded when off

@@ -1,7 +1,10 @@
 import { readFileSync } from "fs";
 import yaml from "js-yaml";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Read version from package.yml (single source of truth)
 function getVersionFromPackageYml() {

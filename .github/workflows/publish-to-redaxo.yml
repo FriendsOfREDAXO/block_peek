@@ -34,7 +34,7 @@ jobs:
             -x "*package*.json" \
             -x "postcss.config.js" \
             -x "block_peek.png" \
-            -x "vite.config.js" \
+            -x "vite.config.mjs" \
             -x "*tests/*" \
             -x "*.DS_Store" \
             -x "*Thumbs.db" \
