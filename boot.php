@@ -30,6 +30,16 @@ if (rex::isBackend() && PickerBoot::shouldLoad($addon->getConfig('picker'), (str
         try {
             $store = new PreviewStore();
             rex_view::setJsProperty('block_peek_picker', $store->forJs(PreviewGenerator::modules()));
+            $states = PickerBoot::staleStates();
+            if ($states !== []) {
+                rex_view::setJsProperty('block_peek_picker_stale', [
+                    'states' => (object) $states,
+                    'labels' => array_combine(['outdated', 'missing', 'failed'], array_map(static fn (string $state): string => rex_i18n::msg('block_peek_picker_' . $state), ['outdated', 'missing', 'failed'])),
+                    'text' => rex_i18n::msg('block_peek_picker_stale_count', (string) count($states)),
+                    'link' => rex_i18n::msg('block_peek_picker_regenerate'),
+                    'url' => rex_url::backendPage('block_peek/picker', [], false),
+                ]);
+            }
         } catch (Throwable $e) {
             rex_logger::logException($e);
         }

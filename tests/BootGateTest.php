@@ -16,6 +16,10 @@ assert(!PickerBoot::shouldLoad(null, 'content/edit', true));
 assert(!PickerBoot::shouldLoad('|1|', 'structure', true));
 assert(!PickerBoot::shouldLoad('|1|', 'content/edit', false));
 assert((new ReflectionMethod(PickerBoot::class, 'shouldLoad'))->getNumberOfParameters() === 3, 'iframe inactivity is not a picker gate input');
+assert(PickerBoot::showNudge(true, true, 1));
+assert(!PickerBoot::showNudge(false, true, 1), 'editors never see the nudge');
+assert(!PickerBoot::showNudge(true, false, 1), 'no nudge without a provider');
+assert(!PickerBoot::showNudge(true, true, 0));
 
 $addon = rex_addon::get('block_peek');
 $hadPath = $addon->hasConfig('picker_php_path');

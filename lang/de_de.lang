@@ -91,5 +91,7 @@ block_peek_picker_current = aktuell
 block_peek_picker_locked = gesperrt
 block_peek_picker_lock_all = Alle sperren
 block_peek_picker_lock_notice = Gesperrte Beschreibungen bleiben beim (Neu-)Generieren der Vorschauen unverändert.
+block_peek_picker_stale_count = Modul-Vorschauen nicht aktuell: {0}
+block_peek_picker_regenerate = Neu generieren
 block_peek_picker_save = Speichern
 block_peek_picker_running = Generierung läuft bereits. Beschreibungen können nach Abschluss wieder bearbeitet werden.
