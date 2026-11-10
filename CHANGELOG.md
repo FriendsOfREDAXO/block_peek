@@ -1,6 +1,6 @@
 # Changelog
 
-## **10.11.2026 Version 1.6.0**
+## **10.11.2026 Version 1.6.0-beta1**
 
 - feat: optional searchable module picker with SVG wireframes, descriptions and existing module groups; disabled by default, with no picker assets or data loaded when off
 - feat: generate previews via auto-detected local Codex/Claude CLIs or an optional `ai_platform` profile; configurable prompt, context paths and visual references
