@@ -1,5 +1,11 @@
 # Changelog
 
+## **10.11.2026 Version 1.6.0-beta3**
+
+- ux: reworked picker admin page — one form with a single save button for all descriptions, auto-growing description fields, a lock column with a "lock all" checkbox, and status shown as coloured labels next to the module name
+- fix: saving only writes fields edited in that tab, so a page left open no longer reverts descriptions regenerated in the meantime
+- fix: the picker page keeps its scroll position while it reloads during generation instead of jumping to the top
+
 ## **10.11.2026 Version 1.6.0-beta2**
 
 - chore: bumped dev dependencies to resolve security alerts (vite 8.3.7, fast-uri 3.1.9, postcss-selector-parser 7.2.0, source-map-js 1.2.2); assets rebuilt
