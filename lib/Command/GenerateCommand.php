@@ -9,9 +9,6 @@ use FriendsOfRedaxo\BlockPeek\Picker\PreviewStore;
 use FriendsOfRedaxo\BlockPeek\Picker\Providers;
 use rex_addon;
 use rex_console_command;
-use rex_dir;
-use rex_file;
-use rex_path;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -31,7 +28,7 @@ final class GenerateCommand extends rex_console_command
     {
         $io = $this->getStyle($input, $output);
         if (rex_addon::get('block_peek')->getConfig('picker') !== '|1|') {
-            $io->note('Modul-Picker ist deaktiviert.');
+            $io->note('Module picker is disabled.');
             return 0;
         }
         $module = $input->getOption('module');
@@ -39,15 +36,14 @@ final class GenerateCommand extends rex_console_command
             $io->error('--module must be a positive integer.');
             return 1;
         }
-        $dir = rex_path::addonCache('block_peek', 'picker/');
-        rex_dir::create($dir);
-        $lock = fopen($dir . 'lock', 'c');
+        // The source file survives cache:clear, with nothing to create or ignore.
+        $lock = fopen(__FILE__, 'r');
         if ($lock === false) {
             throw new RuntimeException('Unable to open generation lock');
         }
         if (!flock($lock, LOCK_EX | LOCK_NB)) {
             fclose($lock);
-            $io->note('Generierung läuft bereits.');
+            $io->note('Generation is already running.');
             return 0;
         }
         try {
@@ -57,7 +53,7 @@ final class GenerateCommand extends rex_console_command
             }
             $provider = Providers::fromConfig();
             if ($provider === null) {
-                $io->error('Kein Provider für die Generierung verfügbar.');
+                $io->error('No provider available for generation.');
                 return 1;
             }
             $counts = (new PreviewGenerator($provider, new PreviewStore()))->run($module === null ? null : (int) $module, (bool) $input->getOption('force'), static function (string $line) use ($io): void {
@@ -66,19 +62,8 @@ final class GenerateCommand extends rex_console_command
             $io->success(sprintf('Generated: %d, skipped: %d, failed: %d', $counts['generated'], $counts['skipped'], $counts['failed']));
             return 0;
         } finally {
-            try {
-                $path = $dir . 'status.json';
-                $status = json_decode((string) rex_file::get($path, '{}'), true);
-                if (is_array($status) && isset($status['running'])) {
-                    $status['running'] = false;
-                    if (!rex_file::put($path, json_encode($status, JSON_THROW_ON_ERROR))) {
-                        throw new RuntimeException('Unable to write generation status');
-                    }
-                }
-            } finally {
-                flock($lock, LOCK_UN);
-                fclose($lock);
-            }
+            flock($lock, LOCK_UN);
+            fclose($lock);
         }
     }
 }

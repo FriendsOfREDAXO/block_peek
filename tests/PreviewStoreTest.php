@@ -18,6 +18,16 @@ try {
 
     $s = new S($dir);
     assert($s->all() === []);
+    foreach (['', " \n\t"] as $empty) {
+        rex_file::put($dir . 'previews.json', $empty);
+        assert($s->all() === [], 'empty indexes must read as an empty store');
+    }
+    $s->setDescription('missing', 'Ignored', false);
+    assert($s->get('missing') === null);
+    $s->setDescription('6', 'New', true, ['id' => 6, 'key' => null, 'name' => 'Hero']);
+    assert($s->get('6') === ['id' => 6, 'key' => null, 'name' => 'Hero', 'description' => 'New', 'locked' => true, 'hash' => '', 'model' => '', 'generated' => 0, 'status' => 'missing']);
+    assert($s->removeOrphans([]) === ['6']);
+    assert(rex_file::get($dir . 'previews.json') === "{}\n", 'empty indexes must serialize as an object');
     $e = ['id' => 6, 'key' => null, 'name' => 'Hero', 'description' => 'd', 'locked' => false, 'hash' => 'h', 'model' => 'm', 'generated' => 1, 'status' => 'ok'];
     $s->put('key-team', ['id' => 22, 'key' => 'team', 'name' => 'Team'] + $e, '<svg id="t"/>');
     $s->put('6', $e, '<svg/>');
@@ -35,6 +45,7 @@ try {
     assert(S::slug(23, '6') === 'key-6');
     assert($js === [6 => ['description' => 'Neu', 'svg' => '<svg/>'], 23 => ['description' => 'Numeric key', 'svg' => '<svg id="key-six"/>']], 'numeric module keys must not overwrite ID previews');
     assert($s->removeOrphans(['6', 'key-team']) === ['key-6']);
+    assert($s->get('key-6') === null && $s->svg('key-6') === null);
 
     $json = (string) file_get_contents($dir . 'previews.json');
     assert(str_ends_with($json, "}\n"));
@@ -100,9 +111,25 @@ try {
     } finally {
         chmod($dir, 0755);
     }
-    assert(rex_file::get($dir . 'previews.json') === $json && $s->svg('6') === '<svg/>');
+    assert($s->get('6') === null && $s->svg('6') === '<svg/>', 'failed deletion must leave the orphan unreferenced');
+    $s->put('6', $e, null);
 
     assert($s->removeOrphans(['key-team']) === ['6'] && $s->svg('6') === null);
+
+    $s->put('a-blocked', $e, '<svg/>');
+    $s->put('z-orphan', $e, '<svg/>');
+    chmod($dir, 0555);
+    try {
+        @$s->removeOrphans(['key-team']);
+        assert(false, 'failed deletions must throw after cleanup');
+    } catch (RuntimeException $error) {
+        assert(str_contains($error->getMessage(), 'a-blocked') && str_contains($error->getMessage(), 'z-orphan'));
+    } finally {
+        chmod($dir, 0755);
+    }
+    assert($s->get('a-blocked') === null && $s->get('z-orphan') === null, 'all failed deletions must leave unreferenced SVGs');
+    rex_file::delete($dir . 'a-blocked.svg');
+    rex_file::delete($dir . 'z-orphan.svg');
 
     $s->put('layout/hero', $e, '<svg id="layout"/>');
     $s->put('content/hero', $e, '<svg id="content"/>');

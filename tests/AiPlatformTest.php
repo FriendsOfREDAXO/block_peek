@@ -34,10 +34,23 @@ try {
     $relative = substr($moduleDir, strlen(rex_path::base()));
     $full = ContextInliner::inline($expected);
     assert(str_starts_with($full, "=== {$relative}input.php ===\nfirst\n=== {$relative}output.php ===\nsecond\n"));
-    assert(!str_contains($full, 'Grössenlimit'));
+    assert(!str_contains($full, 'size limit'));
+    $pathProvider = (new ReflectionProperty(rex_path::class, 'pathprovider'))->getValue();
+    assert(symlink(rex_path::base(), $dir . 'root-link'));
+    $linkedBase = new class($dir . 'root-link/') extends rex_path_default_provider {
+        public function __construct(private string $root) {}
+        public function base($file) { return $this->root . $file; }
+    };
+    rex_path::init($linkedBase);
+    try {
+        assert(ContextInliner::inline([realpath($moduleDir . 'input.php')]) === "=== {$relative}input.php ===\nfirst\n", 'canonical paths must have relative headers under a symlinked project root');
+    } finally {
+        rex_path::init($pathProvider);
+        unlink($dir . 'root-link');
+    }
     $limited = ContextInliner::inline($expected, 10);
     assert(str_contains($limited, "=== {$relative}input.php ===\nfirst\n"));
-    assert(str_contains($limited, '=== (weitere Dateien ausgelassen: Grössenlimit) ==='));
+    assert(str_contains($limited, '=== (further files omitted: size limit) ==='));
     assert(!str_contains($limited, 't/a.css'), 'stop after reaching the cap');
     assert(rex_file::put($dir . 'utf8.txt', 'ä'));
     assert(json_encode(ContextInliner::inline([$dir . 'utf8.txt'], 1)) !== false, 'truncation must preserve UTF-8 for API JSON encoding');
@@ -73,7 +86,7 @@ try {
     $largeInline = ContextInliner::inline([$largeFile], 100);
     assert(memory_get_peak_usage() - $memoryBefore < 262_144, 'a tiny context budget must not allocate the entire 2 MB file');
     $largePath = substr($largeFile, strlen(rex_path::base()));
-    assert($largeInline === "=== {$largePath} ===\n" . str_repeat('a', 100) . "\n=== (weitere Dateien ausgelassen: Grössenlimit) ===");
+    assert($largeInline === "=== {$largePath} ===\n" . str_repeat('a', 100) . "\n=== (further files omitted: size limit) ===");
 
     assert(rex_file::put($dir . 'binary.css', "\x00\xFF"));
     assert(rex_file::put($dir . 'nul.css', "a\x00b"));
@@ -114,7 +127,7 @@ try {
     $entry = $store->get(PreviewStore::slug($module['id'], $module['key']));
     assert($entry['status'] === 'ok' && $entry['model'] === 'ai_platform:Test profile');
     assert(count($captured) === 1 && $captured[0][1] === null);
-    assert(str_contains($captured[0][0], 'The files below are included inline. Do not try to read files.'));
+    assert(str_contains($captured[0][0], 'The files below are included inline and replace the file reads described above. Do not try to read files.'));
     assert(str_contains($captured[0][0], 'output.php ==='));
     assert(str_contains($captured[0][0], '=== src/fragments/button.php ==='), 'default context files must be included, not just module code');
 

@@ -16,6 +16,9 @@ $wrap = static fn (string $inner, string $vb = '0 0 1440 900'): string => '<svg 
 
 assert(V::errors($wrap('<rect width="10" height="10"/><use href="#a"/>')) === []);
 assert(V::errors('<!DOCTYPE svg [<!ENTITY x "<script>alert(1)</script>">]>' . $wrap('&x;')) === ['DOCTYPE not allowed']);
+assert(V::errors($wrap('<rect fill="url(https://x/y)"/>')) === ['external url() reference']);
+assert(V::errors($wrap("<rect style=\"fill:url( 'http://x' )\"/>")) === ['external url() reference']);
+assert(V::errors($wrap('<rect fill="url(#a)"/>')) === []);
 $bad = [
     $wrap('<rect/>', '0 0 1440 760'),
     $wrap('<script>1</script>'),

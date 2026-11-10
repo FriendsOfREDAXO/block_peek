@@ -14,7 +14,7 @@ final class Providers
         $provider = (string) $addon->getConfig('picker_provider', 'auto');
         $presets = [
             'codex' => ['{bin} exec -m {model} -c model_reasoning_effort={effort} -s read-only --skip-git-repo-check {image_args} -o {out} -', 'file', 'gpt-6.1-sol'],
-            'claude' => ['{bin} -p --model {model} --allowedTools "Read Glob Grep" --add-dir {tmp} --output-format json', 'json', 'opus'],
+            'claude' => ['{bin} -p --model {model} --allowedTools "Read Glob Grep" --output-format json', 'json', 'opus'],
         ];
         $names = $provider === 'auto' ? [...array_keys($presets), 'ai_platform'] : [$provider];
         foreach ($names as $name) {

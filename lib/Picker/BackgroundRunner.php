@@ -45,8 +45,16 @@ final class BackgroundRunner
         if ($force) {
             $args[] = '--force';
         }
-        exec('nohup ' . implode(' ', array_map('escapeshellarg', $args)) . ' > ' . escapeshellarg($dir . 'run.log') . ' 2>&1 &', $output, $code);
-        return $code === 0;
+        exec('nohup ' . implode(' ', array_map('escapeshellarg', $args)) . ' > ' . escapeshellarg($dir . 'run.log') . ' 2>&1 & echo $!', $output, $code);
+        $pid = trim(implode('', $output));
+        if ($code !== 0 || !ctype_digit($pid)) {
+            return false;
+        }
+        rex_file::put($dir . 'status.json', json_encode([
+            'running' => true, 'pid' => (int) $pid, 'started' => time(),
+            'current' => '', 'done' => 0, 'total' => 0, 'log' => [],
+        ], JSON_THROW_ON_ERROR));
+        return true;
     }
 
     public static function status(): array
@@ -56,9 +64,10 @@ final class BackgroundRunner
             return ['running' => false];
         }
         if ($status['running'] ?? false) {
+            // ponytail: PID reuse after a crash can show a stale run as running until the PID dies.
             $pid = (int) ($status['pid'] ?? 0);
             $status['running'] = function_exists('posix_kill') && $pid > 0
-                ? posix_kill($pid, 0) !== false
+                ? (posix_kill($pid, 0) || posix_get_last_error() === 1)
                 : time() - (int) ($status['started'] ?? 0) <= 3600;
         }
         return $status;

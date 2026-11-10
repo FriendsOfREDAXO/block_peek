@@ -50,9 +50,7 @@ final class PreviewGenerator
         $status = ['running' => true, 'pid' => getmypid(), 'started' => time(), 'current' => '', 'done' => 0, 'total' => count($selected), 'log' => []];
         $statusPath = rex_path::addonCache('block_peek', 'picker/status.json');
         $writeStatus = static function () use (&$status, $statusPath): void {
-            if (!rex_file::put($statusPath, json_encode($status, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE))) {
-                throw new RuntimeException('Unable to write generation status');
-            }
+            @rex_file::put($statusPath, json_encode($status, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
         };
         $report = static function (string $line) use (&$status, $log, $writeStatus): void {
             $status['log'][] = $line;
@@ -92,7 +90,7 @@ final class PreviewGenerator
                         'language' => (string) ($addon->getConfig('picker_language', '') ?: rex::getProperty('lang')),
                     ]);
                     if ($this->provider->inlineContext()) {
-                        $prompt .= "\n\nThe files below are included inline. Do not try to read files.\n\n" . ContextInliner::inline(ContextInliner::files($dir, $globs));
+                        $prompt .= "\n\nThe files below are included inline and replace the file reads described above. Do not try to read files.\n\n" . ContextInliner::inline(ContextInliner::files($dir, $globs));
                     }
                     $result = null;
                     $error = '';
@@ -104,6 +102,9 @@ final class PreviewGenerator
                                 break;
                             }
                             $error = implode(', ', $errors);
+                        } catch (TimeoutException $e) {
+                            $report($module['name'] . ': ' . $e->getMessage());
+                            break;
                         } catch (Throwable $e) {
                             $error = $e->getMessage();
                         }

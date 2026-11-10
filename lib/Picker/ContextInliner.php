@@ -79,7 +79,7 @@ final class ContextInliner
     {
         $out = '';
         $remaining = $maxBytes;
-        $truncated = "=== (weitere Dateien ausgelassen: Grössenlimit) ===";
+        $truncated = "=== (further files omitted: size limit) ===";
         foreach ($files as $file) {
             if ($remaining <= 0) {
                 return $out . $truncated;
@@ -92,7 +92,13 @@ final class ContextInliner
             if (str_contains($content, "\0") || !mb_check_encoding($cut, 'UTF-8')) {
                 continue;
             }
-            $path = str_starts_with($file, rex_path::base()) ? substr($file, strlen(rex_path::base())) : $file;
+            $path = $file;
+            foreach ([rex_path::base(), realpath(rex_path::base())] as $base) {
+                if ($base !== false && str_starts_with($file, rtrim($base, '/') . '/')) {
+                    $path = substr($file, strlen(rtrim($base, '/')) + 1);
+                    break;
+                }
+            }
             $out .= '=== ' . $path . " ===\n" . $cut . "\n";
             $remaining -= strlen($content);
             if ($remaining < 0) {

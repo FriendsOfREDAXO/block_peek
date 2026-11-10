@@ -55,6 +55,9 @@ final class SvgValidator
                 $errors[] = "forbidden element <$name>";
             }
             foreach ($el->attributes as $attr) {
+                if (preg_match('/url\(\s*+[\'"]?+\s*+(?!#)/i', $attr->value)) {
+                    $errors[] = 'external url() reference';
+                }
                 $an = strtolower($attr->localName);
                 if (str_starts_with($an, 'on')) {
                     $errors[] = "event attribute $an";

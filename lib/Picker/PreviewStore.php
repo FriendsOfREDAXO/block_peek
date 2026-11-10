@@ -31,7 +31,8 @@ final class PreviewStore
     /** @return array<string, array<string, mixed>> */
     public function all(): array
     {
-        $data = json_decode((string) rex_file::get($this->dir . 'previews.json', '{}'), true, 512, JSON_THROW_ON_ERROR);
+        $json = trim((string) rex_file::get($this->dir . 'previews.json', '{}'));
+        $data = $json === '' ? [] : json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         return is_array($data) ? $data : [];
     }
 
@@ -69,11 +70,19 @@ final class PreviewStore
         }
     }
 
-    public function setDescription(string $slug, string $text, bool $locked): void
+    /** @param array{id:int, key:?string, name:string}|null $module */
+    public function setDescription(string $slug, string $text, bool $locked, ?array $module = null): void
     {
         $all = $this->all();
         if (!isset($all[$slug])) {
-            return;
+            if ($module === null) {
+                return;
+            }
+            $all[$slug] = [
+                'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
+                'description' => $text, 'locked' => $locked, 'hash' => '',
+                'model' => '', 'generated' => 0, 'status' => 'missing',
+            ];
         }
         $all[$slug]['description'] = $text;
         $all[$slug]['locked'] = $locked;
@@ -89,13 +98,19 @@ final class PreviewStore
         $all = $this->all();
         $removed = array_map('strval', array_values(array_diff(array_keys($all), $keep))); // numeric slugs are int keys in PHP
         foreach ($removed as $slug) {
-            if (!rex_file::delete($this->svgPath($slug))) {
-                throw new RuntimeException('Unable to delete preview SVG: ' . $slug);
-            }
             unset($all[$slug]);
         }
         if ($removed) {
             $this->save($all);
+        }
+        $failed = [];
+        foreach ($removed as $slug) {
+            if (!rex_file::delete($this->svgPath($slug))) {
+                $failed[] = $slug;
+            }
+        }
+        if ($failed) {
+            throw new RuntimeException('Unable to delete preview SVG: ' . implode(', ', $failed));
         }
         return $removed;
     }
@@ -126,7 +141,7 @@ final class PreviewStore
     private function save(array $all): void
     {
         ksort($all, SORT_STRING);
-        $json = json_encode($all, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+        $json = json_encode((object) $all, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
         if (!rex_file::put($this->dir . 'previews.json', $json)) {
             throw new RuntimeException('Unable to write preview index');
         }

@@ -159,7 +159,7 @@ final class CliProvider implements Provider
                         // shortcut: descendants may survive without POSIX, use process supervision if full-tree cleanup is required.
                         proc_terminate($process, 9);
                     }
-                    throw new RuntimeException('CLI timeout after ' . $this->timeout . ' seconds');
+                    throw new TimeoutException('CLI timeout after ' . $this->timeout . ' seconds');
                 }
                 usleep(10000);
             } while (true);

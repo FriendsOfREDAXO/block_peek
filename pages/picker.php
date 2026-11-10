@@ -50,15 +50,7 @@ try {
             if ($action === 'save') {
                 $slug = rex_post('picker_slug', 'string', '');
                 if (isset($modulesBySlug[$slug])) {
-                    if ($store->get($slug) === null) {
-                        $module = $modulesBySlug[$slug];
-                        $store->put($slug, [
-                            'id' => $module['id'], 'key' => $module['key'], 'name' => $module['name'],
-                            'description' => '', 'locked' => false, 'hash' => '',
-                            'model' => '', 'generated' => 0, 'status' => 'missing',
-                        ], null);
-                    }
-                    $store->setDescription($slug, rex_post('picker_description', 'string', ''), rex_post('picker_locked', 'bool', false));
+                    $store->setDescription($slug, rex_post('picker_description', 'string', ''), rex_post('picker_locked', 'bool', false), $modulesBySlug[$slug]);
                     $message = 'saved';
                 }
             } elseif (in_array($action, ['generate', 'force'], true)) {

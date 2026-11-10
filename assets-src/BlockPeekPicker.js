@@ -114,8 +114,8 @@
 				rows.find((row) => !row.hidden)?.click();
 				return;
 			}
-			if (["Home", "End"].includes(event.key) && !event.target.closest(".bp-picker-row")) return;
-			if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+			if (["Home", "End", "ArrowRight", "ArrowLeft"].includes(event.key) && !event.target.closest(".bp-picker-row")) return;
+			if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
 			const visible = rows.filter((row) => !row.hidden);
 			if (!visible.length) return;
 			event.preventDefault();
@@ -123,8 +123,22 @@
 			let next;
 			if (event.key === "Home") next = 0;
 			else if (event.key === "End") next = visible.length - 1;
-			else if (event.key === "ArrowDown") next = (index + 1) % visible.length;
-			else next = (index < 0 ? visible.length : index) - 1;
+			else if (event.key === "ArrowRight") next = index + 1;
+			else if (event.key === "ArrowLeft") next = index - 1;
+			else {
+				const down = event.key === "ArrowDown";
+				next = down ? 0 : visible.length - 1;
+				if (index >= 0) {
+					const current = visible[index].getBoundingClientRect();
+					const candidates = visible
+						.map((row) => ({ row, rect: row.getBoundingClientRect() }))
+						.filter(({ rect }) => (down ? rect.top - current.top : current.top - rect.top) > 1)
+						.sort((a, b) =>
+							Math.abs(a.rect.top - current.top) - Math.abs(b.rect.top - current.top)
+							|| Math.abs(a.rect.left - current.left) - Math.abs(b.rect.left - current.left));
+					if (candidates.length) next = visible.indexOf(candidates[0].row);
+				}
+			}
 			visible[(next + visible.length) % visible.length].focus();
 		});
 

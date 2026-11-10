@@ -8,6 +8,9 @@
 - fix: validate generated SVGs, preserve previous previews on generation failure and prevent concurrent runs with a lock
 - fix: prefix keyed-module preview slugs with `key-` to avoid collisions with module IDs; existing ID-based preview filenames stay unchanged
 - fix: filter symlink targets in AI context, support CLI timeout cleanup without POSIX, resolve relative CLI paths from the project root and reject missing module IDs
+- ux: picker columns follow the panel width, with arrow-key navigation across the visible grid
+- fix: stop generation attempts immediately after a CLI timeout
+- ux: use English console messages for preview generation
 - ux: translate picker search labels and placeholders for German and English
 - chore: exclude tests from installer packages
 - docs: document picker setup, prompt placeholders, preview storage/migration and local Deployer generation

@@ -156,10 +156,14 @@ if (rex_addon::get('ai_platform')->isAvailable()) {
     $field = $form->addSelectField('picker_ai_profile');
     $field->setLabel(rex_i18n::msg('block_peek_picker_ai_profile'));
     $field->getSelect()->addOption(rex_i18n::msg('block_peek_picker_none'), '');
-    foreach (\FriendsOfRedaxo\AiPlatform\Service::getInstance()->getProfiles() as $profile) {
-        if (in_array($profile['type'], ['text', 'image_understanding'], true)) {
-            $field->getSelect()->addOption($profile['name'], $profile['id']);
+    try {
+        foreach (\FriendsOfRedaxo\AiPlatform\Service::getInstance()->getProfiles() as $profile) {
+            if (in_array($profile['type'], ['text', 'image_understanding'], true)) {
+                $field->getSelect()->addOption($profile['name'], $profile['id']);
+            }
         }
+    } catch (Throwable $e) {
+        rex_logger::logException($e);
     }
     $field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_ai_profile_notice')));
 }
@@ -170,7 +174,15 @@ foreach (['cli_path', 'command', 'model', 'effort', 'language'] as $setting) {
     if ($setting === 'command') {
         $field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_command_notice')));
     } elseif ($setting === 'model') {
-        $field->setAttribute('placeholder', $this->getConfig('picker_provider') === 'claude' ? 'opus' : 'gpt-6.1-sol');
+        $placeholder = match ($this->getConfig('picker_provider')) {
+            'claude' => 'opus',
+            'codex' => 'gpt-6.1-sol',
+            'ai_platform' => '',
+            default => 'gpt-6.1-sol / opus',
+        };
+        if ($placeholder !== '') {
+            $field->setAttribute('placeholder', $placeholder);
+        }
     } elseif ($setting === 'language') {
         $field->setAttribute('placeholder', (string) rex::getProperty('lang'));
     } elseif ($setting === 'effort') {

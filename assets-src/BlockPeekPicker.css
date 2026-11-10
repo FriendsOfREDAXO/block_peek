@@ -1,16 +1,17 @@
 .bp-picker {
 	--bp-picker-bg: #fff;
-	--bp-picker-border: rgba(0, 0, 0, 0.15);
+	--bp-picker-border: rgb(0 0 0 / 15%);
 	--bp-picker-line: #dfe3e9;
 	--bp-picker-ink: #324050;
 	--bp-picker-muted: #6c7a89;
 	--bp-picker-thumb: #eef0f3;
 	--bp-picker-hover: #f5f5f5;
+
 	margin: 2px 0 10px;
 	border: 1px solid var(--bp-picker-border);
 	border-radius: 4px;
 	background: var(--bp-picker-bg);
-	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+	box-shadow: 0 6px 12px rgb(0 0 0 / 17.5%);
 	color: var(--bp-picker-ink);
 	font-size: 14px;
 	text-align: left;
@@ -33,6 +34,7 @@
 }
 
 .bp-picker-body {
+	container-type: inline-size;
 	max-height: 640px;
 	padding: 4px 14px 14px;
 	overflow: auto;
@@ -103,7 +105,7 @@
 	font-size: 12px;
 }
 
-@media (max-width: 767px) {
+@container (max-width: 767px) {
 	.bp-picker-list {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -113,8 +115,8 @@ body.rex-theme-dark .bp-picker {
 	--bp-picker-bg: #151c22;
 	--bp-picker-border: #151c22;
 	--bp-picker-line: #202b35;
-	--bp-picker-ink: rgba(255, 255, 255, 0.75);
-	--bp-picker-muted: rgba(255, 255, 255, 0.6);
+	--bp-picker-ink: rgb(255 255 255 / 75%);
+	--bp-picker-muted: rgb(255 255 255 / 60%);
 	--bp-picker-thumb: #202b35;
 	--bp-picker-hover: #1b232c;
 }
@@ -124,8 +126,8 @@ body.rex-theme-dark .bp-picker {
 		--bp-picker-bg: #151c22;
 		--bp-picker-border: #151c22;
 		--bp-picker-line: #202b35;
-		--bp-picker-ink: rgba(255, 255, 255, 0.75);
-		--bp-picker-muted: rgba(255, 255, 255, 0.6);
+		--bp-picker-ink: rgb(255 255 255 / 75%);
+		--bp-picker-muted: rgb(255 255 255 / 60%);
 		--bp-picker-thumb: #202b35;
 		--bp-picker-hover: #1b232c;
 	}

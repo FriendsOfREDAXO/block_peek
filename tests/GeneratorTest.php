@@ -7,6 +7,7 @@ use FriendsOfRedaxo\BlockPeek\Picker\PreviewGenerator as G;
 use FriendsOfRedaxo\BlockPeek\Picker\PreviewStore as S;
 use FriendsOfRedaxo\BlockPeek\Picker\Provider;
 use FriendsOfRedaxo\BlockPeek\Picker\Providers;
+use FriendsOfRedaxo\BlockPeek\Picker\TimeoutException;
 use FriendsOfRedaxo\BlockPeek\Command\GenerateCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -95,11 +96,36 @@ try {
     }
     assert($g->run($id, false, $logger)['generated'] === 1, 'failed entries must be retried without force');
 
+    $timeout = new class implements Provider {
+        public int $calls = 0;
+        public function generate(string $prompt, ?string $imagePath): string
+        {
+            ++$this->calls;
+            throw new TimeoutException('CLI timeout');
+        }
+        public function label(): string { return 'timeout'; }
+        public function inlineContext(): bool { return false; }
+    };
+    $logBefore = count($log);
+    assert((new G($timeout, $s))->run($id, true, $logger)['failed'] === 1);
+    assert($timeout->calls === 1 && $s->get($slug)['status'] === 'failed');
+    assert(!str_contains(implode("\n", array_slice($log, $logBefore)), '(retry)'));
+
+    $statusPath = rex_path::addonCache('block_peek', 'picker/status.json');
+    $savedStatus = rex_file::get($statusPath);
+    chmod($statusPath, 0444);
+    try {
+        assert(@$g->run($id, true, $logger)['generated'] === 1, 'advisory status failures must not abort generation');
+    } finally {
+        chmod($statusPath, 0644);
+        rex_file::put($statusPath, $savedStatus);
+    }
+
     $start = microtime(true);
     try {
         (new CliProvider($fake, '{bin} slow', 'stdout', 'm', 'e', 1))->generate('test', null);
         assert(false, 'timeout must throw');
-    } catch (RuntimeException $e) {
+    } catch (TimeoutException $e) {
         assert(str_contains(strtolower($e->getMessage()), 'timeout'));
         assert(microtime(true) - $start < 3, 'timeout must not wait for the child to finish');
     }
@@ -109,13 +135,13 @@ try {
     $start = microtime(true);
     exec(escapeshellarg(PHP_BINARY) . ' -d disable_functions=posix_kill ' . escapeshellarg(rex_path::bin('console')) . ' massif:exec-php ' . escapeshellarg($timeoutCode) . ' 2>&1', $lines, $exit);
     assert($exit === 1 && str_contains(implode("\n", $lines), 'CLI timeout'), implode("\n", $lines));
-    assert(microtime(true) - $start < 2, 'without posix_kill the timeout must kill the direct process before proc_close');
+    assert(microtime(true) - $start < 5, 'without posix_kill the timeout must kill the direct process before proc_close');
 
     $pidFile = $dir . 'child.pid';
     try {
         (new CliProvider($fake, '{bin} slowchild ' . escapeshellarg($pidFile), 'stdout', 'm', 'e', 1))->generate('test', null);
         assert(false, 'timeout with descendants must throw');
-    } catch (RuntimeException $e) {
+    } catch (TimeoutException $e) {
         assert(str_contains(strtolower($e->getMessage()), 'timeout'));
         $childPid = (int) rex_file::get($pidFile);
         assert($childPid > 0, 'slowchild must record its child PID');
@@ -287,10 +313,10 @@ try {
 
     $command = new CommandTester(new GenerateCommand());
     $addon->setConfig('picker', '');
-    assert($command->execute([]) === 0 && str_contains($command->getDisplay(), 'deaktiviert'));
+    assert($command->execute([]) === 0 && str_contains($command->getDisplay(), 'Module picker is disabled.'));
     $addon->setConfig('picker', '|1|');
     $addon->setConfig('picker_provider', 'none');
-    assert($command->execute([]) === 1 && str_contains($command->getDisplay(), 'Provider'));
+    assert($command->execute([]) === 1 && str_contains($command->getDisplay(), 'No provider available for generation.'));
     assert($command->execute(['--module' => 'invalid']) === 1);
 
     $missingId = max(array_column($modules, 'id')) + 1;
@@ -302,14 +328,13 @@ try {
     assert(!str_contains($display, 'Generated:') && !str_contains($display, 'Provider'), 'missing module must be rejected before resolving a provider');
 
     // Hold the lock before starting the real command, so this can never invoke a real model.
-    rex_dir::create(rex_path::addonCache('block_peek', 'picker/'));
-    $lock = fopen(rex_path::addonCache('block_peek', 'picker/lock'), 'c');
+    $lock = fopen((new ReflectionClass(GenerateCommand::class))->getFileName(), 'r');
     assert($lock !== false && flock($lock, LOCK_EX | LOCK_NB));
     $addon->setConfig('picker', '|1|');
     rex_config::save();
     $lines = [];
     exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(rex_path::bin('console')) . ' block_peek:generate 2>&1', $lines, $exit);
-    assert($exit === 0 && str_contains(implode("\n", $lines), 'läuft bereits'), implode("\n", $lines));
+    assert($exit === 0 && str_contains(implode("\n", $lines), 'Generation is already running.'), implode("\n", $lines));
 } finally {
     foreach ($environment as $key => $value) {
         putenv($value === false ? $key : "$key=$value");

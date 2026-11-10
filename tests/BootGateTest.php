@@ -142,6 +142,13 @@ try {
     assert(!str_contains($html, 'name="picker_ai_profile"'), 'ai_platform is absent in this installation');
     assert(str_contains($html, '{reference_image_sentence}'), 'prompt placeholders must be listed');
 
+    foreach (['auto' => 'gpt-6.1-sol / opus', '' => 'gpt-6.1-sol / opus', 'claude' => 'opus', 'codex' => 'gpt-6.1-sol', 'ai_platform' => ''] as $provider => $placeholder) {
+        $addon->setConfig('picker_provider', $provider);
+        $settingsHtml = $render->call($addon, 'settings');
+        assert(preg_match('/<input[^>]*name="[^"]*picker_model[^"]*"[^>]*>/', $settingsHtml, $modelField) === 1);
+        assert($placeholder === '' ? !str_contains($modelField[0], 'placeholder=') : str_contains($modelField[0], 'placeholder="' . $placeholder . '"'));
+    }
+
     foreach (['picker_cli_path', 'picker_command'] as $key) {
         $settings[$key] = [$addon->hasConfig($key), $addon->getConfig($key)];
     }
@@ -221,6 +228,10 @@ try {
     $activeStatus = ['running' => true, 'pid' => getmypid(), 'started' => time(), 'done' => 2, 'total' => 19, 'log' => ['Hero: ok']];
     rex_file::put($statusPath, json_encode($activeStatus, JSON_THROW_ON_ERROR));
     assert(BackgroundRunner::status() === $activeStatus);
+    if (function_exists('posix_kill') && !posix_kill(1, 0) && posix_get_last_error() === 1) {
+        rex_file::put($statusPath, json_encode(['pid' => 1] + $activeStatus, JSON_THROW_ON_ERROR));
+        assert(BackgroundRunner::status()['running'], 'EPERM means the process is alive');
+    }
     $deadStatus = ['pid' => 2147483647] + $activeStatus;
     rex_file::put($statusPath, json_encode($deadStatus, JSON_THROW_ON_ERROR));
     assert(!BackgroundRunner::status()['running'], 'dead generation PID must stop auto-refresh');
@@ -240,7 +251,7 @@ try {
     // A fake interpreter records argv without starting any AI generation.
     $binary = $dir . "php 'quoted'";
     $argsPath = $dir . 'args';
-    rex_file::put($binary, "#!/bin/sh\nprintf '%s\\n' \"\$@\" > " . escapeshellarg($argsPath) . "\n");
+    rex_file::put($binary, "#!/bin/sh\nprintf '%s\\n' \"\$@\" > " . escapeshellarg($argsPath) . "\nsleep 1\n");
     chmod($binary, 0755);
     $addon->setConfig('picker_php_path', $binary);
     rex_file::put($statusPath, json_encode($activeStatus, JSON_THROW_ON_ERROR));
@@ -261,6 +272,10 @@ try {
     rex_path::init($consoleProvider);
     try {
         assert(BackgroundRunner::start(7, true));
+        $started = BackgroundRunner::status();
+        assert($started['running'] && $started['pid'] > 0 && $started['started'] >= time() - 1);
+        assert($started['current'] === '' && $started['done'] === 0 && $started['total'] === 0 && $started['log'] === []);
+        assert(!BackgroundRunner::start(7, true), 'a second immediate start must be refused');
     } finally {
         rex_path::init($pathProvider);
     }
@@ -270,6 +285,7 @@ try {
     assert(rex_file::get($argsPath) === $consoleProvider->bin('console') . "\nblock_peek:generate\n--module=7\n--force\n", 'arguments must survive shell escaping');
     $_REQUEST = [rex_csrf_token::PARAM => rex_csrf_token::factory('block_peek_picker')->getValue()];
     foreach (['generate', 'force'] as $action) {
+        rex_file::delete($statusPath);
         rex_file::delete($argsPath);
         $_POST = ['picker_action' => $action];
         $render->call($addon, 'picker');
@@ -279,6 +295,7 @@ try {
         }
         assert(rex_file::get($argsPath) === rex_path::bin('console') . "\nblock_peek:generate\n" . ($action === 'force' ? "--force\n" : ''), 'POST must launch the requested generation mode');
     }
+    usleep(1_100_000);
     $_POST = [];
     $_GET = ['picker_message' => 'started'];
     $html = $render->call($addon, 'picker');
