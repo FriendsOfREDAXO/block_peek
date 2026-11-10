@@ -45,13 +45,19 @@ final class BackgroundRunner
         if ($force) {
             $args[] = '--force';
         }
+        $launched = time();
         exec('nohup ' . implode(' ', array_map('escapeshellarg', $args)) . ' > ' . escapeshellarg($dir . 'run.log') . ' 2>&1 & echo $!', $output, $code);
         $pid = trim(implode('', $output));
         if ($code !== 0 || !ctype_digit($pid)) {
             return false;
         }
+        // A run (this child or a concurrent winner) that already wrote its own status must not be overwritten.
+        $current = json_decode((string) rex_file::get($dir . 'status.json', ''), true);
+        if ((int) ($current['started'] ?? 0) >= $launched) {
+            return true;
+        }
         rex_file::put($dir . 'status.json', json_encode([
-            'running' => true, 'pid' => (int) $pid, 'started' => time(),
+            'running' => true, 'pid' => (int) $pid, 'started' => $launched,
             'current' => '', 'done' => 0, 'total' => 0, 'log' => [],
         ], JSON_THROW_ON_ERROR));
         return true;

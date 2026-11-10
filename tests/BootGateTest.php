@@ -276,6 +276,10 @@ try {
         assert($started['running'] && $started['pid'] > 0 && $started['started'] >= time() - 1);
         assert($started['current'] === '' && $started['done'] === 0 && $started['total'] === 0 && $started['log'] === []);
         assert(!BackgroundRunner::start(7, true), 'a second immediate start must be refused');
+        $childStatus = ['running' => false, 'pid' => 1, 'started' => time() + 5, 'done' => 1, 'total' => 1, 'log' => ['Hero: ok']];
+        rex_file::put($statusPath, json_encode($childStatus, JSON_THROW_ON_ERROR));
+        assert(BackgroundRunner::start(7, true));
+        assert(json_decode(rex_file::get($statusPath), true) === $childStatus, 'a status written by a run after launch must not be overwritten');
     } finally {
         rex_path::init($pathProvider);
     }
