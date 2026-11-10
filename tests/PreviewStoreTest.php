@@ -139,6 +139,24 @@ try {
     assert($s->svg('layout%2Fhero') === '<svg id="percent"/>');
     assert($s->removeOrphans(['key-team', 'content/hero', 'layout%2Fhero']) === ['layout/hero']);
     assert($s->svg('layout/hero') === null && $s->svg('content/hero') === '<svg id="content"/>' && $s->svg('layout%2Fhero') === '<svg id="percent"/>');
+
+    // State rule: failed > missing > outdated (module hash or a changed source) > current.
+    $base = $dir . 'state-base/';
+    rex_file::put($base . 'f.php', 'one');
+    $m = ['id' => 7, 'key' => null, 'name' => 'M', 'input' => 'i', 'output' => 'o'];
+    $ok = ['status' => 'ok', 'hash' => S::hash('i', 'o')];
+    assert(S::state($m, ['status' => 'failed'] + $ok, true) === 'failed');
+    assert(S::state($m, null, false) === 'missing' && S::state($m, $ok, false) === 'missing');
+    assert(S::state($m, ['hash' => 'x'] + $ok, true) === 'outdated');
+    assert(S::state($m, $ok, true, $base) === 'current', 'legacy entries without sources follow the module hash only');
+    $withSource = $ok + ['sources' => ['f.php' => sha1_file($base . 'f.php')]];
+    assert(S::state($m, $withSource, true, $base) === 'current');
+    rex_file::put($base . 'f.php', 'two');
+    assert(S::state($m, $withSource, true, $base) === 'outdated', 'a changed source makes the preview outdated');
+
+    $states = new S($dir . 'state-store/');
+    $states->put('7', ['id' => 7, 'key' => null, 'name' => 'M', 'description' => '', 'locked' => false, 'model' => '', 'generated' => 1] + $ok, '<svg/>');
+    assert($states->staleStates([$m, ['id' => 8] + $m], $base) === [8 => 'missing'], 'modules without any entry count as missing');
 } finally {
     rex_dir::delete($dir);
 }

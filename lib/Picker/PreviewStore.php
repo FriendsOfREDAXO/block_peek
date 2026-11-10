@@ -28,6 +28,41 @@ final class PreviewStore
         return sha1($input . "\0" . $output);
     }
 
+    /**
+     * The one state rule for previews: failed > missing > outdated (module code or a reported source changed) > current.
+     *
+     * @param array{input:string, output:string} $module
+     * @param array<string, mixed>|null $entry
+     */
+    public static function state(array $module, ?array $entry, bool $hasSvg, ?string $base = null): string
+    {
+        return match (true) {
+            ($entry['status'] ?? '') === 'failed' => 'failed',
+            $entry === null || !$hasSvg => 'missing',
+            ($entry['hash'] ?? '') !== self::hash($module['input'], $module['output']),
+            Sources::changed(is_array($entry['sources'] ?? null) ? $entry['sources'] : [], $base) => 'outdated',
+            default => 'current',
+        };
+    }
+
+    /**
+     * @param list<array{id:int, key:?string, input:string, output:string}> $modules
+     * @return array<int, string> module id => state, without current previews
+     */
+    public function staleStates(array $modules, ?string $base = null): array
+    {
+        $all = $this->all();
+        $states = [];
+        foreach ($modules as $module) {
+            $slug = self::slug($module['id'], $module['key']);
+            $state = self::state($module, $all[$slug] ?? null, is_file($this->svgPath($slug)), $base);
+            if ($state !== 'current') {
+                $states[$module['id']] = $state;
+            }
+        }
+        return $states;
+    }
+
     /** @return array<string, array<string, mixed>> */
     public function all(): array
     {

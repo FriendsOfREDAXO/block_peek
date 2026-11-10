@@ -25,7 +25,7 @@ PHP tests are assert scripts in `tests/`. Run from a REDAXO install with the add
 php -d zend.assertions=1 bin/console massif:exec-php "require 'src/addons/block_peek/tests/<Name>Test.php';"
 ```
 
-Names: `SvgValidator`, `PreviewStore`, `PromptBuilder`, `Generator`, `AiPlatform`, `BootGate`. A pass produces only the console's OK line; warnings or assertion output are not a pass. `tests/` is excluded from release archives by the publish workflow. No test runner or PHP/JS linter is wired into npm scripts. `.stylelintrc.json` and `.prettierrc` exist — run `npx stylelint` / `npx prettier` directly if needed.
+Names: `SvgValidator`, `PreviewStore`, `Sources`, `PromptBuilder`, `Generator`, `AiPlatform`, `BootGate`. A pass produces only the console's OK line; warnings or assertion output are not a pass. `tests/` is excluded from release archives by the publish workflow. No test runner or PHP/JS linter is wired into npm scripts. `.stylelintrc.json` and `.prettierrc` exist — run `npx stylelint` / `npx prettier` directly if needed.
 
 ## Version is in package.yml, not package.json
 
