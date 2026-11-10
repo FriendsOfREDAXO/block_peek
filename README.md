@@ -36,6 +36,83 @@ Zusätzlich können folgende Konfigurationsoptionen angepasst werden:
 - **Cache Modus:** Legt fest, ob die generierten Vorschauen zwischengespeichert werden sollen (automatisch, aktiviert, deaktiviert).
 - **Cache TTL:** Die Zeit in Sekunden, wie lange eine Vorschau im Cache gespeichert bleibt (Standard: 3600).
 
+## Modul-Picker
+
+Der optionale Modul-Picker ersetzt beim Hinzufügen eines Blocks das Modul-Dropdown durch eine durchsuchbare Auswahl mit SVG-Wireframes und Kurzbeschreibungen. Namen, Beschreibungen und die bestehenden Modulgruppen helfen bei der Auswahl. In der Konfiguration **Modul-Picker aktivieren** einschalten; standardmässig ist er aus. Aus = natives Dropdown, keine Picker-JS/CSS-Dateien oder Vorschaudaten werden geladen, keine Generierung.
+
+### Provider
+
+`auto` prüft in dieser Reihenfolge:
+
+1. Lokale **Codex-CLI**, danach **Claude-CLI**; ausführbare Dateien werden in `~/.local/bin`, `~/.local/shims`, `/opt/homebrew/bin`, `/usr/local/bin` und im `PATH` gesucht. Unter PHP-FPM/Herd kann der Suchpfad vom Terminal abweichen: einen absoluten CLI-Pfad unter `picker_cli_path` hinterlegen. In `auto` muss dessen Dateiname zum Provider passen (`codex` bzw. `claude`); alternativ den Provider explizit wählen.
+2. Optional **ai_platform** mit dem ausgewählten Profil (`picker_ai_profile`). Im Profil **Max Tokens >= 8192** setzen; für ein Referenzbild ein bildfähiges Profil verwenden.
+3. Ohne verfügbaren Provider bzw. bei `none` werden keine neuen Thumbnails erzeugt. Bereits gespeicherte Vorschauen bleiben nutzbar, fehlende bleiben leer.
+
+Ein leeres `picker_command` verwendet das jeweilige CLI-Preset. Ein eigener Befehl wird für die jeweils ausgewählte CLI verwendet; in `auto` kann das Codex oder Claude sein. Bei einem eigenen `picker_command` den Provider deshalb explizit auf `codex` oder `claude` setzen. Eigene Befehle erhalten den Prompt auf stdin und müssen das Ergebnis (`description` und `svg` als JSON) auf stdout ausgeben. Verfügbare Befehlsplatzhalter: `{bin}`, `{model}`, `{effort}`, `{image_args}`, `{out}`, `{tmp}`. Platzhalter nur unquoted verwenden, niemals innerhalb einfacher oder doppelter Anführungszeichen: BlockPeek übernimmt das Shell-Escaping. Der Befehl muss mit einem ausführbaren Kommando beginnen; Umgebungsvariablen etwa mit `env VAR=wert {bin} …` setzen, nicht mit `VAR=wert {bin} …`.
+
+### Generierung und Verwaltung
+
+Im REDAXO-Projektverzeichnis:
+
+```bash
+bin/console block_peek:generate [--module=ID] [--force]
+```
+
+Ohne Optionen werden fehlende, fehlgeschlagene oder nach Änderungen am Modul-Input/-Output veraltete Vorschauen generiert. `--module=ID` beschränkt den Lauf auf ein Modul, `--force` generiert auch unveränderte Vorschauen neu. Bei Fehlern bleibt das bisherige SVG erhalten; weitere Module werden verarbeitet. Die Abschlusszeile nennt `Generated`, `skipped` und `failed` — auch bei einzelnen Fehlschlägen kann der Exit-Code 0 sein.
+
+Die Admin-Unterseite **BlockPeek → Modul-Picker** zeigt Vorschauen und Status, startet die Generierung im Hintergrund und erlaubt das Bearbeiten und Sperren von Beschreibungen gegen AI-Überschreiben. Ohne verfügbaren Provider bleibt sie schreibgeschützt. Falls der Hintergrundstart unter PHP-FPM/Herd scheitert, `picker_php_path` auf die PHP-CLI setzen. Gleichzeitige Generierungsläufe werden per Lock verhindert.
+
+### Prompt und Kontext
+
+`picker_prompt` ist in den Einstellungen editierbar; leer verwendet `templates/picker-prompt.md`, einsehbar über **Standard anzeigen**. Platzhalter: `{module_dir}` (temporäres Verzeichnis mit `input.php` und `output.php`), `{module_name}`, `{context_paths}`, `{style_reference_block}`, `{reference_image_sentence}`, `{language}`. Stilreferenz und Referenzbild lassen sich separat wählen; der Bildpfad ist relativ zum Projektverzeichnis. Eine leere Sprache verwendet `rex::getProperty('lang')`.
+
+`picker_context_paths` enthält einen Glob pro Zeile, relativ zum Projektverzeichnis. MASSIF-Defaults:
+
+```text
+src/fragments/**
+src/assets/css/components/**
+src/assets/css/theme/tokens.css
+src/assets/css/utils/fluid-grid.css
+```
+
+Lokale CLIs lesen die im Prompt angegebenen Pfade selbst. Für `ai_platform` bettet `ContextInliner` Modulcode und passende Kontextdateien ein (maximal 200.000 Inhaltsbytes): nur Textquellen mit den Endungen `css`, `scss`, `sass`, `less`, `js`, `mjs`, `cjs`, `ts`, `php`, `html`, `htm`, `twig`, `md`; Dotfiles und versteckte Verzeichnisse werden übersprungen, aufgelöste Pfade müssen innerhalb des Projektverzeichnisses bleiben. `/**` liest rekursiv, andere Muster verwenden normales Glob-Matching.
+
+### Speicherung und Deployment
+
+SVGs und `previews.json` liegen im Addon-Datenverzeichnis, bei MASSIF unter `var/data/addons/block_peek/previews/`. Dieses Verzeichnis committen und bei Migrationen bzw. Deployments mitnehmen. Modul-Keys dienen als stabile Zuordnung, ohne Key wird die Modul-ID verwendet; diese muss im Zielsystem passen. Nach Änderungen am Modul-Input/-Output erneut generieren; nach Prompt-, Stil- oder Kontextänderungen `--force` verwenden.
+
+Falls `.gitignore` die Regel `var/data/addons/*/*` enthält, danach freigeben:
+
+```gitignore
+!var/data/addons/block_peek/previews/
+!var/data/addons/block_peek/previews/**
+```
+
+Deployer-Beispiel für einen bereits konfigurierten lokalen Build-Host `local`, der im REDAXO-Projektverzeichnis arbeitet und das Release lokal vorbereitet. Nach dem Anlegen des Release-Verzeichnisses und vor dessen Upload ausführen; die CLI bleibt auf dem lokalen Host:
+
+```php
+task('block_peek:previews', static function () {
+    on(host('local'), static function () {
+        try {
+            $output = run('bin/console block_peek:generate', ['timeout' => null]);
+            writeln($output);
+            if (preg_match('/failed: [1-9]/', $output)) {
+                warning('BlockPeek: einzelne Vorschauen fehlgeschlagen.');
+            }
+        } catch (\Throwable $e) {
+            warning('BlockPeek: ' . $e->getMessage());
+        }
+        if (test('[ -d var/data/addons/block_peek/previews ]')) {
+            run('mkdir -p {{release_path}}/var/data/addons/block_peek');
+            run('cp -R var/data/addons/block_peek/previews {{release_path}}/var/data/addons/block_peek/');
+        }
+    });
+});
+after('deploy:update_code', 'block_peek:previews');
+```
+
+Den Hook an die eigene lokale Build-/Upload-Reihenfolge anpassen. Generierungsfehler warnen, vorhandene Vorschauen werden weiter ins Release kopiert.
+
 ## Tailwind 4 / `@source` Discovery
 
 Das Vorschau-Template wird als verstecktes REDAXO-Template (Key: `block_peek_internal`) gespeichert. Damit Tailwind 4 die im Template verwendeten Utility-Klassen findet, empfehlen wir das [`developer`](https://github.com/redaxo/developer) Addon — es synchronisiert `rex_template`-Datensätze als Dateien nach `<data>/addons/developer/templates/<Name> [<id>]/template.php` (`<data>` ist je nach Installation entweder `redaxo/data/` oder `var/data/`). Anschließend einfach eine `@source`-Direktive in dein CSS aufnehmen:

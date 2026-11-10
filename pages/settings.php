@@ -1,6 +1,9 @@
 <?php
 
 use FriendsOfRedaxo\BlockPeek\TemplateInstaller;
+use FriendsOfRedaxo\BlockPeek\Picker\CliProvider;
+use FriendsOfRedaxo\BlockPeek\Picker\PreviewStore;
+use FriendsOfRedaxo\BlockPeek\Picker\PromptBuilder;
 
 /** @var rex_addon $this */
 
@@ -136,11 +139,93 @@ $field = $form->addCheckboxField('force_fe');
 $field->setLabel(rex_i18n::msg('block_peek_force_fe'));
 $field->addOption(rex_i18n::msg('block_peek_force_fe_option'), 1);
 
+$form->addFieldset(rex_i18n::msg('block_peek_picker_title'));
+
+$field = $form->addCheckboxField('picker');
+$field->setLabel(rex_i18n::msg('block_peek_picker_enabled'));
+$field->addOption(rex_i18n::msg('block_peek_picker_yes'), 1);
+$field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_enabled_notice')));
+
+$field = $form->addSelectField('picker_provider');
+$field->setLabel(rex_i18n::msg('block_peek_picker_provider'));
+foreach (['auto', 'codex', 'claude', 'ai_platform', 'none'] as $provider) {
+    $field->getSelect()->addOption(rex_i18n::msg('block_peek_picker_provider_' . $provider), $provider);
+}
+
+if (rex_addon::get('ai_platform')->isAvailable()) {
+    $field = $form->addSelectField('picker_ai_profile');
+    $field->setLabel(rex_i18n::msg('block_peek_picker_ai_profile'));
+    $field->getSelect()->addOption(rex_i18n::msg('block_peek_picker_none'), '');
+    try {
+        foreach (\FriendsOfRedaxo\AiPlatform\Service::getInstance()->getProfiles() as $profile) {
+            if (in_array($profile['type'], ['text', 'image_understanding'], true)) {
+                $field->getSelect()->addOption($profile['name'], $profile['id']);
+            }
+        }
+    } catch (Throwable $e) {
+        rex_logger::logException($e);
+    }
+    $field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_ai_profile_notice')));
+}
+
+foreach (['cli_path', 'command', 'model', 'effort', 'language'] as $setting) {
+    $field = $form->addTextField('picker_' . $setting);
+    $field->setLabel(rex_i18n::msg('block_peek_picker_' . $setting));
+    if ($setting === 'command') {
+        $field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_command_notice')));
+    } elseif ($setting === 'model') {
+        $placeholder = match ($this->getConfig('picker_provider')) {
+            'claude' => 'opus',
+            'codex' => 'gpt-6.1-sol',
+            'ai_platform' => '',
+            default => 'gpt-6.1-sol / opus',
+        };
+        if ($placeholder !== '') {
+            $field->setAttribute('placeholder', $placeholder);
+        }
+    } elseif ($setting === 'language') {
+        $field->setAttribute('placeholder', (string) rex::getProperty('lang'));
+    } elseif ($setting === 'effort') {
+        $field->setAttribute('placeholder', 'medium');
+    }
+}
+
+$field = $form->addTextAreaField('picker_context_paths');
+$field->setLabel(rex_i18n::msg('block_peek_picker_context_paths'));
+$field->setAttribute('rows', '5');
+
+$field = $form->addTextAreaField('picker_prompt');
+$field->setLabel(rex_i18n::msg('block_peek_picker_prompt'));
+$field->setAttribute('rows', '10');
+$field->setNotice(rex_escape(rex_i18n::msg('block_peek_picker_prompt_notice')));
+$form->addRawField('<details><summary>' . rex_escape(rex_i18n::msg('block_peek_picker_show_default')) . '</summary><pre>' . rex_escape(PromptBuilder::defaultPrompt()) . '</pre></details>');
+
+$field = $form->addSelectField('picker_style_module');
+$field->setLabel(rex_i18n::msg('block_peek_picker_style_module'));
+$field->getSelect()->addOption(rex_i18n::msg('block_peek_picker_none'), '');
+try {
+    foreach ((new PreviewStore())->all() as $slug => $preview) {
+        $field->getSelect()->addOption((string) ($preview['name'] ?? $slug), (string) $slug);
+    }
+} catch (Throwable $e) {
+    rex_logger::logException($e);
+    $form->addRawField(rex_view::warning(rex_escape(rex_i18n::msg('block_peek_picker_store_error'))));
+}
+
+foreach (['reference_image', 'php_path'] as $setting) {
+    $field = $form->addTextField('picker_' . $setting);
+    $field->setLabel(rex_i18n::msg('block_peek_picker_' . $setting));
+}
+
 $content = '';
 $content .= $templateMessage;
 $content .= $templateForm;
 $content .= $form->getMessage();
 $content .= $form->get();
+$command = trim((string) $this->getConfig('picker_command', ''));
+if ($command !== '' && ($errors = CliProvider::templateErrors($command)) !== []) {
+    $content .= rex_view::warning(rex_escape(implode(' ', $errors)));
+}
 
 $fragment = new rex_fragment();
 $fragment->setVar('class', 'edit', false);

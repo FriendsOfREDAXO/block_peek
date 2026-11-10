@@ -1,9 +1,17 @@
 package: block_peek
-version: '1.5.0'
+version: '1.6.0-beta1'
 license: MIT
 author: Friends Of REDAXO, Yves Torres
 supportpage: https://github.com/FriendsOfREDAXO/block_peek
 perm: block_peek[]
+
+console_commands:
+  block_peek:generate: FriendsOfRedaxo\BlockPeek\Command\GenerateCommand
+
+default_config:
+  picker_provider: auto
+  picker_effort: medium
+  picker_context_paths: "src/fragments/**\nsrc/assets/css/components/**\nsrc/assets/css/theme/tokens.css\nsrc/assets/css/utils/fluid-grid.css"
 
 page:
   title: 'translate:block_peek_title'
@@ -13,6 +21,10 @@ page:
     settings:
       title: 'translate:block_peek_settings'
       icon: rex-icon fa-cog
+    picker:
+      title: 'translate:block_peek_picker_title'
+      icon: rex-icon fa-th-large
+      perm: admin[]
     docs:
       title: 'translate:block_peek_docs'
       subPath: README.md
@@ -25,6 +37,7 @@ requires:
     version: '>=8.2'
 
 installer_ignore:
+  - tests
   - node_modules
   - assets-src
   - block_peek.zip

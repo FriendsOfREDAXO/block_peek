@@ -15,16 +15,17 @@ npm run build
 # Watch mode (no sync)
 npm run watch        # alias: npm run dev
 
-# Watch + rsync built assets into REDAXO's public/assets/addons/block_peek/
-# (path is hardcoded as ../../../public/assets/addons/block_peek/, so this only
-# works when this repo is checked out at <redaxo>/src/addons/block_peek)
-npm run dev:sync
-
 # Sync version from package.yml -> package.json (also runs as part of prebuild)
 npm run version:sync
 ```
 
-There is no test suite, no PHP linter, and no JS linter wired up. `.stylelintrc.json` and `.prettierrc` exist but are not invoked by any npm script — run `npx stylelint` / `npx prettier` directly if needed.
+PHP tests are assert scripts in `tests/`. Run from a REDAXO install with the addon (including `tests/`) and MASSIF available:
+
+```bash
+php -d zend.assertions=1 bin/console massif:exec-php "require 'src/addons/block_peek/tests/<Name>Test.php';"
+```
+
+Names: `SvgValidator`, `PreviewStore`, `PromptBuilder`, `Generator`, `AiPlatform`, `BootGate`. A pass produces only the console's OK line; warnings or assertion output are not a pass. `tests/` is excluded from release archives by the publish workflow. No test runner or PHP/JS linter is wired into npm scripts. `.stylelintrc.json` and `.prettierrc` exist — run `npx stylelint` / `npx prettier` directly if needed.
 
 ## Version is in package.yml, not package.json
 
@@ -37,14 +38,19 @@ There is no test suite, no PHP linter, and no JS linter wired up. `.stylelintrc.
 1. `boot.php` registers a late handler on REDAXO's `SLICE_BE_PREVIEW` extension point (only when `inactive` config is not `|1|`, the user is logged in, and we are in the backend).
 2. `lib/Extension.php` (`FriendsOfRedaxo\BlockPeek\Extension::register`) is the EP callback. It reads slice params from the EP, instantiates a `Generator`, wraps the result in `<iframe srcdoc="...">`, and replaces the EP subject. **No HTTP round-trip** — the preview HTML is inlined as `srcdoc`, which is why loading is instant.
 3. `lib/Generator.php` builds the inner HTML:
-   - Cache key = `md5(articleId + sliceId + updateDate + revision)`, stored with an `expires` timestamp in one serialized file per slice (`article-<id>/slice-<sliceId>.cache` in the addon's cache path), so new versions overwrite old ones. In inactive mode the slice's file is deleted. `update.php` wipes the cache path. No symfony/cache: its psr/cache 2.x clashes with the psr/cache 3.x bundled by rexstan. Cache mode (`auto` / `active` / `inactive`) lives in addon config; `auto` follows REDAXO debug mode.
-   - Renders the slice via `rex_article_content::getSlice()`.
-   - Wraps it in the user-configured template (settings page), substituting the `{{block_peek_content}}` placeholder.
-   - Injects `assets_head` / `assets_body` snippets, sets `<html lang>` from the clang.
+   - Cache key = `md5(articleId + sliceId + updateDate + revision + templateUpdateDate)`, stored with an `expires` timestamp in one serialized file per slice (`article-<id>/slice-<sliceId>.cache` in the addon's cache path), so new versions overwrite old ones. In inactive mode the slice's file is deleted. `update.php` wipes the cache path. No symfony/cache: its psr/cache 2.x clashes with the psr/cache 3.x bundled by rexstan. Cache mode (`auto` / `active` / `inactive`) lives in addon config; `auto` follows REDAXO debug mode.
+   - Renders the slice via `rex_article_content::getSlice()` and the hidden template (`block_peek_internal`) via `getArticleTemplate()`, using REDAXO's normal template pipeline.
+   - Substitutes `BLOCK_PEEK_CONTENT` with the slice HTML and sets `<html lang>` from the clang.
    - Inlines `assets/BlockPeekPoster.js` into `<script>` with two placeholders replaced: `BLOCK_PEEK_PLACEHOLDER_SLICE_ID`, `BLOCK_PEEK_PLACEHOLDER_MAX_HEIGHT`. This is what posts the iframe height back to the parent.
-   - Replaces REDAXO vars (`REX_MODULE_ID`, `REX_MODULE_KEY`, `REX_SLICE_ID`, `REX_CTYPE_ID`, common vars, `redaxo://` links), then writes the template to a temp file in the cache dir and `include`s it bound to the `rex_article_content` so `$this` works inside template PHP.
+   - Resolves sprog wildcards in the preview's clang when sprog is available.
    - Fires the `BLOCK_PEEK_OUTPUT` extension point so projects can post-process.
-   - Optional `force_fe` config flips `rex::setProperty('redaxo', false)` so frontend-only code paths run.
+   - Optional `force_fe` config flips `rex::setProperty('redaxo', false)` so frontend-only code paths run, restoring the previous value in `finally`.
+
+### Module picker
+
+`lib/Picker/` (`FriendsOfRedaxo\BlockPeek\Picker`) is separate from slice rendering. `PreviewStore` keeps `previews.json` and SVG files in the addon's `previews/` data directory, keyed by module key or ID, with input/output hashes. `SvgValidator` checks XML, the fixed viewBox and unsafe elements/attributes. `PromptBuilder` expands the six placeholders from `templates/picker-prompt.md` or a custom prompt. `Providers` selects a `Provider`: `CliProvider` detects and runs local Codex/Claude with shell-escaped arguments, stdin prompts and a 300-second timeout; `AiPlatformProvider` uses the configured profile, with `ContextInliner` embedding filtered project source files. Auto order is Codex → Claude → ai_platform. `PreviewGenerator` skips current previews, retries once, preserves previous SVGs on failure and respects description locks. `BackgroundRunner` launches the console using a detected/configured PHP CLI and reads progress from the addon cache. `PickerBoot` gates picker assets/data on `picker === '|1|'`, a backend user and `content/edit`, independently of iframe preview activation.
+
+`lib/Command/GenerateCommand.php` registers `block_peek:generate [--module=ID] [--force]` via `package.yml`; it checks the switch/provider and holds a non-blocking generation lock. Individual module failures appear in the summary but do not make the command exit nonzero. `pages/picker.php` is the admin UI for background generation, status and description editing; without a provider it is read-only.
 
 ### Frontend assets
 
@@ -52,13 +58,14 @@ Source in `assets-src/`, built into `assets/` (committed) by Vite. Vite external
 
 - `BlockPeek.js` runs in the REDAXO backend page. Two responsibilities:
   - **Iframe sizing**: listens for `postMessage({type:"resize", id, height})` from each iframe and sets the wrapper's height to `height * zoomFactor`.
-  - **Async slice edit/save** on `rex.page === "content/edit"`: intercepts edit/save/apply clicks, fetches via `XMLHttpRequest`-marked requests, and swaps the `.rex-slice` DOM in place — no full page reload. It also handles back/forward navigation via `popstate` and re-runs CKEditor's `updateSourceElement()` before serializing the form (this matters; see CHANGELOG 1.1.1).
-- `BlockPeekPoster.js` runs **inside** the iframe (via the inlined `<script>` from `Generator::getTemplate`). It uses a `ResizeObserver` on `document.body` to post heights up. It also stubs `history.replaceState` to swallow errors — `srcdoc` iframes can't use the History API, and frontend code that calls it would otherwise throw (CHANGELOG 1.1.0).
+  - **Scroll restoration**: records edit/save/apply intent around native navigation/form submission, then restores the target slice after iframe heights settle, including bfcache restores.
+- `BlockPeekPoster.js` runs **inside** the iframe (inlined by `Generator::injectPosterAndStyles`). It uses a `ResizeObserver` on `document.body` to post heights up. It also stubs `history.replaceState` to swallow errors — `srcdoc` iframes can't use the History API, and frontend code that calls it would otherwise throw (CHANGELOG 1.1.0).
+- `BlockPeekPicker.js` / `BlockPeekPicker.css` are separate Vite entries, built to the same names in `assets/`. The JS uses delegated capture listeners for module selection, search and keyboard navigation, with SVGs rendered as data-URL images. CSS uses `bp-picker` classes, two columns (one below 768px) and 184px thumbnails at 16:10.
 
 ### Pages
 
 - `pages/index.php` — wrapper that calls `rex_be_controller::includeCurrentPageSubPath()`.
-- `pages/settings.php` — admin-only config form built with `rex_config_form`. Fields: `template`, `assets_head`, `assets_body`, `cache`, `cache_ttl`, `inactive`, `iframe_min_height`, `iframe_max_height`, `iframe_zoom_factor`, `force_fe`.
+- `pages/settings.php` — admin-only custom template form writing to `rex_template`, plus `rex_config_form` for cache, iframe and picker settings (provider/profile, CLI command/path/model/effort, language, prompt/context, references and PHP CLI path).
 - The "docs" subpage is just `README.md` rendered via `subPath` in `package.yml`.
 
 ### Autoloading
