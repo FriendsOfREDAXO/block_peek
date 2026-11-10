@@ -161,7 +161,7 @@ try {
     $entries = $store->all();
     unset($entries[$slug]);
     rex_file::put($indexPath, json_encode($entries, JSON_THROW_ON_ERROR));
-    $_POST = ['picker_action' => 'save', 'picker_slug' => $slug, 'picker_description' => '<script>alert(1)</script>', 'picker_locked' => '1'];
+    $_POST = ['picker_action' => 'save', 'picker_description' => [$slug => '<script>alert(1)</script>'], 'picker_locked' => [$slug => '1'], 'picker_original' => [$slug => ''], 'picker_original_locked' => [$slug => '']];
     $_REQUEST = [rex_csrf_token::PARAM => 'invalid'];
     $render->call($addon, 'picker');
     assert(str_contains((string) \BlockPeekTests\rex_response::$redirect, 'picker_message=csrf_error'), 'invalid POST must redirect to GET');
@@ -170,6 +170,13 @@ try {
     $html = $render->call($addon, 'picker');
     assert($store->get($slug)['description'] === '<script>alert(1)</script>' && $store->get($slug)['locked']);
     assert(str_contains((string) \BlockPeekTests\rex_response::$redirect, 'picker_message=saved'), 'save POST must redirect to GET');
+    // A stale tab only writes what it changed: here the lock, not its outdated description.
+    $saved = $store->get($slug);
+    $store->put($slug, ['description' => 'Fresh'] + $saved, null);
+    $_POST = ['picker_action' => 'save', 'picker_description' => [$slug => $saved['description']], 'picker_original' => [$slug => $saved['description']], 'picker_original_locked' => [$slug => '1']];
+    $render->call($addon, 'picker');
+    assert($store->get($slug)['description'] === 'Fresh' && $store->get($slug)['locked'] === false, 'stale tab must not revert a newer description');
+    $store->put($slug, $saved, null);
     $_POST = [];
     $_GET = ['picker_message' => 'saved'];
     $html = $render->call($addon, 'picker');
@@ -200,7 +207,7 @@ try {
     $beforeSave = $store->get($slug);
     $_REQUEST = [rex_csrf_token::PARAM => rex_csrf_token::factory('block_peek_picker')->getValue()];
     foreach (['save', 'generate', 'force'] as $action) {
-        $_POST = ['picker_action' => $action, 'picker_slug' => $slug, 'picker_description' => 'Rejected'];
+        $_POST = ['picker_action' => $action, 'picker_description' => [$slug => 'Rejected'], 'picker_original' => [$slug => '']];
         $render->call($addon, 'picker');
         assert(str_contains((string) \BlockPeekTests\rex_response::$redirect, 'picker_message=running'), "$action during a run must redirect with a running message");
         assert($store->get($slug) === $beforeSave, 'running saves must not edit descriptions');
