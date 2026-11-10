@@ -46,6 +46,34 @@ if (rex::isBackend() && PickerBoot::shouldLoad($addon->getConfig('picker'), (str
     });
 }
 
+// Once per login session, tell admins which module previews need a (re)generation.
+if (rex::isBackend() && $addon->getConfig('picker') === '|1|' && rex::getUser()?->isAdmin()) {
+    rex_extension::register('PAGE_TITLE_SHOWN', static function (rex_extension_point $ep) {
+        try {
+            $login = rex::getProperty('login');
+            if (!$login instanceof rex_backend_login) {
+                return null;
+            }
+            $start = $login->getSessionVar(rex_login::SESSION_START_TIME);
+            if (!PickerBoot::loginNoticeDue($start, $login->getSessionVar('block_peek_stale_notice', null))) {
+                return null;
+            }
+            $login->setSessionVar('block_peek_stale_notice', $start); // also when nothing is stale: check once per login
+            $states = PickerBoot::staleStates();
+            if ($states === []) {
+                return null;
+            }
+            return $ep->getSubject() . rex_view::info(
+                rex_escape(rex_i18n::msg('block_peek_picker_stale_count', (string) count($states)))
+                . ' <a href="' . rex_url::backendPage('block_peek/picker') . '">' . rex_escape(rex_i18n::msg('block_peek_picker_regenerate')) . ' →</a>',
+            );
+        } catch (Throwable $e) {
+            rex_logger::logException($e);
+            return null;
+        }
+    });
+}
+
 // Remove preview cache files along with their slice/article — regardless of the
 // `inactive` setting, so files don't linger while previews are switched off.
 if (rex::isBackend()) {

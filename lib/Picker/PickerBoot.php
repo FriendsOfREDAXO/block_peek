@@ -21,6 +21,11 @@ final class PickerBoot
         return $admin && $hasProvider && $count > 0;
     }
 
+    public static function loginNoticeDue(mixed $sessionStart, mixed $notedFor): bool
+    {
+        return is_scalar($sessionStart) && (string) $sessionStart !== '' && (string) $notedFor !== (string) $sessionStart;
+    }
+
     /**
      * Previews that need a (re)generation, for the admin nudge; [] when the nudge must not show.
      *
