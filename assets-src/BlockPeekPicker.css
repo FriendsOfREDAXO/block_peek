@@ -145,26 +145,26 @@
 }
 
 body.rex-theme-dark .bp-picker {
-	--bp-picker-bg: #151c22;
-	--bp-picker-border: #151c22;
+	--bp-picker-bg: #213c51; /* REDAXO "Block hinzufügen" bar */
+	--bp-picker-border: #1a2e3e;
 	--bp-picker-line: #202b35;
 	--bp-picker-ink: rgb(255 255 255 / 75%);
 	--bp-picker-muted: rgb(255 255 255 / 60%);
 	--bp-picker-thumb: #202b35;
-	--bp-picker-hover: #1b232c;
+	--bp-picker-hover: #1c4260;
 	--bp-picker-warn: #f0c75e;
 	--bp-picker-warn-bg: #2a2412;
 }
 
 @media (prefers-color-scheme: dark) {
 	body:not(.rex-theme-light) .bp-picker {
-		--bp-picker-bg: #151c22;
-		--bp-picker-border: #151c22;
+		--bp-picker-bg: #213c51; /* REDAXO "Block hinzufügen" bar */
+		--bp-picker-border: #1a2e3e;
 		--bp-picker-line: #202b35;
 		--bp-picker-ink: rgb(255 255 255 / 75%);
 		--bp-picker-muted: rgb(255 255 255 / 60%);
 		--bp-picker-thumb: #202b35;
-		--bp-picker-hover: #1b232c;
+		--bp-picker-hover: #1c4260;
 		--bp-picker-warn: #f0c75e;
 		--bp-picker-warn-bg: #2a2412;
 	}
