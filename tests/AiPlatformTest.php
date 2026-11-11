@@ -116,7 +116,8 @@ try {
     }
 
     $addon->setConfig('picker_prompt', 'Module: {module_name}');
-    $addon->setConfig('picker_context_paths', "src/fragments/**\nsrc/assets/css/components/**\nsrc/assets/css/theme/tokens.css\nsrc/assets/css/utils/fluid-grid.css");
+    $contextFile = rex_path::relative(rex_path::addon('block_peek', 'boot.php')); // exists in every install, unlike project fragments
+    $addon->setConfig('picker_context_paths', $contextFile);
     $addon->setConfig('picker_style_module', '');
     $addon->setConfig('picker_reference_image', '');
     $addon->setConfig('picker_language', 'de');
@@ -129,7 +130,7 @@ try {
     assert(count($captured) === 1 && $captured[0][1] === null);
     assert(str_contains($captured[0][0], 'The files below are included inline and replace the file reads described above. Do not try to read files.'));
     assert(str_contains($captured[0][0], 'output.php ==='));
-    assert(str_contains($captured[0][0], '=== src/fragments/button.php ==='), 'default context files must be included, not just module code');
+    assert(str_contains($captured[0][0], "=== $contextFile ==="), 'default context files must be included, not just module code');
 
     $cli = new class(new CliProvider(__DIR__ . '/fixtures/fake-cli.sh', '{bin} ok', 'stdout', 'm', 'e')) implements Provider {
         public string $prompt = '';
