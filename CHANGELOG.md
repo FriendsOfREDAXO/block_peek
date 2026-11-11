@@ -1,5 +1,13 @@
 # Changelog
 
+## **11.11.2026 Version 1.6.0-beta4**
+
+- feat: previews track the project files the AI used (fragments, templates, CSS/JS); a changed or deleted file marks the preview as outdated, and "Fehlende/veraltete generieren" renews it
+- feat: admins see outdated, missing and failed previews in the add-block popup (count line with a regenerate link, dot next to each affected module) and as a notice on the structure page until all previews are current; only shown when a provider is available
+- change: previews generated before this version count as outdated once, so their source files get tracked on the next generation
+- ux: in dark mode the module picker uses the background of the "Block hinzufügen" bar instead of blending into the page
+- fix: tests no longer depend on project-specific files
+
 ## **10.11.2026 Version 1.6.0-beta3**
 
 - ux: reworked picker admin page — one form with a single save button for all descriptions, auto-growing description fields, a lock column with a "lock all" checkbox, and status shown as coloured labels next to the module name
