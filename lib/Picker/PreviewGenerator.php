@@ -26,6 +26,7 @@ final class PreviewGenerator
         ], $rows);
     }
 
+    // Known issue: global files (base CSS, tokens, templates) get reported too, see CLAUDE.md "Known issues".
     public const SOURCES_INSTRUCTION = 'Also include "sources" in the JSON object: an array of the project files (paths relative to the project root) you read that shaped this preview, such as fragments, templates, classes, CSS and JS. Do not list input.php or output.php, and list source files, not generated build output (e.g. hashed bundles in dist folders).';
 
     /** @return array{description:string, svg:string, sources:list<string>}|null */

@@ -72,6 +72,10 @@ Source in `assets-src/`, built into `assets/` (committed) by Vite. Vite external
 
 No Composer: the addon has no PHP dependencies, and REDAXO autoloads `lib/` itself.
 
+## Known issues (watching)
+
+- **Shared source files can flag every preview (since 1.6.0-beta4).** The AI also reports global files as `sources` (e.g. `src/assets/css/base.css`, `typography.css`, `tokens.css`, the Main template): module 70 in a test project listed 7 global files out of 10. Once all previews carry sources, one small edit to such a file marks nearly every preview outdated, keeps the structure-page notice up and costs one paid AI run per module, although grey wireframes barely change. Decision (11.11.2026): wait for user reports. Fix options, cheapest first: tell the AI in `PreviewGenerator::SOURCES_INSTRUCTION` to list only module-specific files (no global stylesheets, tokens, layout utilities or page templates); if that is not reliable, add an "ignore for tracking" glob setting enforced in `Sources`.
+
 ## Release / packaging
 
 `.github/workflows/publish-to-redaxo.yml` runs on GitHub Release publish: zips the repo (excluding `assets-src/`, `scripts/`, `node_modules`, dotfiles, `*.json` package files, `vite.config.mjs`, etc. — see the workflow for the full list), uploads the zip to the release, and pushes to MyREDAXO via `FriendsOfREDAXO/installer-action`. The `installer_ignore` list in `package.yml` mirrors most of these exclusions for the in-REDAXO installer path.
