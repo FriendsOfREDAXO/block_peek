@@ -40,7 +40,8 @@ final class PreviewStore
             ($entry['status'] ?? '') === 'failed' => 'failed',
             $entry === null || !$hasSvg => 'missing',
             ($entry['hash'] ?? '') !== self::hash($module['input'], $module['output']),
-            Sources::changed(is_array($entry['sources'] ?? null) ? $entry['sources'] : [], $base) => 'outdated',
+            !is_array($entry['sources'] ?? null), // generated before sources were tracked: regenerate once
+            Sources::changed($entry['sources'], $base) => 'outdated',
             default => 'current',
         };
     }

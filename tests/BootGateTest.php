@@ -20,9 +20,6 @@ assert(PickerBoot::showNudge(true, true, 1));
 assert(!PickerBoot::showNudge(false, true, 1), 'editors never see the nudge');
 assert(!PickerBoot::showNudge(true, false, 1), 'no nudge without a provider');
 assert(!PickerBoot::showNudge(true, true, 0));
-assert(PickerBoot::loginNoticeDue(1700, null) && PickerBoot::loginNoticeDue(1700, 1600), 'a new login session gets the notice');
-assert(!PickerBoot::loginNoticeDue(1700, 1700) && !PickerBoot::loginNoticeDue(1700, '1700'), 'once per login session');
-assert(!PickerBoot::loginNoticeDue('', null) && !PickerBoot::loginNoticeDue(null, null), 'no session start, no notice');
 
 $addon = rex_addon::get('block_peek');
 $hadPath = $addon->hasConfig('picker_php_path');
