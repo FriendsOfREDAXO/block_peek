@@ -16,17 +16,13 @@ final class PickerBoot
         return $configValue === '|1|' && $page === 'content/edit' && $backendUser;
     }
 
-    public static function showNudge(bool $admin, bool $hasProvider, int $count): bool
-    {
-        return $admin && $hasProvider && $count > 0;
-    }
-
     /**
      * Previews that need a (re)generation, for the admin nudge; [] when the nudge must not show.
      *
+     * @param list<array{id:int, key:?string, name:string, input:string, output:string}>|null $modules default: all modules
      * @return array<int, string> module id => outdated|missing|failed
      */
-    public static function staleStates(): array
+    public static function staleStates(?array $modules = null): array
     {
         if (rex_addon::get('block_peek')->getConfig('picker') !== '|1|' || !rex::getUser()?->isAdmin()) {
             return [];
@@ -35,11 +31,14 @@ final class PickerBoot
             if (Providers::fromConfig() === null) {
                 return [];
             }
-            $states = (new PreviewStore())->staleStates(PreviewGenerator::modules());
+        } catch (Throwable) {
+            return []; // ponytail: a broken provider is logged and shown on the picker page, not on every backend view
+        }
+        try {
+            return (new PreviewStore())->staleStates($modules ?? PreviewGenerator::modules());
         } catch (Throwable $e) {
             rex_logger::logException($e);
             return [];
         }
-        return self::showNudge(true, true, count($states)) ? $states : [];
     }
 }

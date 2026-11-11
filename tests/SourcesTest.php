@@ -40,6 +40,15 @@ try {
     assert(Sources::changed($s, $base), 'a deleted source counts as changed');
     assert(!Sources::changed([], $base));
 
+    // Big files (bundles, data dumps) are not fingerprinted; hashes are shared per check.
+    rex_file::put($base . 'big.js', str_repeat('a', Sources::MAX_BYTES + 1));
+    assert(Sources::collect(['big.js', 'a.php'], $base, $x) === ['a.php' => sha1_file($base . 'a.php')], 'files above MAX_BYTES are skipped');
+    $s = Sources::collect(['a.php'], $base, $x);
+    $hashes = [];
+    assert(!Sources::changed($s, $base, $x, $hashes) && count($hashes) === 1, 'changed() records each hash it computes');
+    $hashes = array_fill_keys(array_keys($hashes), 'memo');
+    assert(Sources::changed($s, $base, $x, $hashes), 'changed() reuses recorded hashes instead of hashing again');
+
     // Review fixes: malformed paths never throw; symlinks are checked by reported and resolved path; rechecks stay inside the project.
     assert(array_keys(Sources::collect(["a\0.php", 'a.php'], $base, $x)) === ['a.php'], 'a NUL byte must not fail the generation');
     rex_file::put($base . 'sub/b.css', 'b');

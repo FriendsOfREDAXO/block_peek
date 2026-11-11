@@ -28,9 +28,9 @@ if (rex::isBackend() && PickerBoot::shouldLoad($addon->getConfig('picker'), (str
     ]);
     rex_extension::register('PACKAGES_INCLUDED', static function () {
         try {
-            $store = new PreviewStore();
-            rex_view::setJsProperty('block_peek_picker', $store->forJs(PreviewGenerator::modules()));
-            $states = PickerBoot::staleStates();
+            $modules = PreviewGenerator::modules();
+            rex_view::setJsProperty('block_peek_picker', (new PreviewStore())->forJs($modules));
+            $states = PickerBoot::staleStates($modules);
             if ($states !== []) {
                 rex_view::setJsProperty('block_peek_picker_stale', [
                     'states' => (object) $states,

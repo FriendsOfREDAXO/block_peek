@@ -16,10 +16,35 @@ assert(!PickerBoot::shouldLoad(null, 'content/edit', true));
 assert(!PickerBoot::shouldLoad('|1|', 'structure', true));
 assert(!PickerBoot::shouldLoad('|1|', 'content/edit', false));
 assert((new ReflectionMethod(PickerBoot::class, 'shouldLoad'))->getNumberOfParameters() === 3, 'iframe inactivity is not a picker gate input');
-assert(PickerBoot::showNudge(true, true, 1));
-assert(!PickerBoot::showNudge(false, true, 1), 'editors never see the nudge');
-assert(!PickerBoot::showNudge(true, false, 1), 'no nudge without a provider');
-assert(!PickerBoot::showNudge(true, true, 0));
+
+// The nudge gate itself: picker on, admin, provider available, something stale.
+$gateAddon = rex_addon::get('block_peek');
+$gateKeys = ['picker', 'picker_provider', 'picker_cli_path'];
+$gateSaved = array_map(static fn (string $k): array => [$gateAddon->hasConfig($k), $gateAddon->getConfig($k)], array_combine($gateKeys, $gateKeys));
+$gateUser = rex::getProperty('user');
+$user = static fn (bool $admin): rex_user => new class(rex_sql::factory(), $admin) extends rex_user {
+    public function __construct(rex_sql $sql, private bool $admin) { parent::__construct($sql); }
+    public function isAdmin(): bool { return $this->admin; }
+};
+$unknown = [['id' => 999999, 'key' => null, 'name' => 'Gate', 'input' => 'i', 'output' => 'o']];
+try {
+    $gateAddon->setConfig(['picker' => '|1|', 'picker_provider' => 'codex', 'picker_cli_path' => rex_path::relative(__DIR__ . '/fixtures/fake-cli.sh')]);
+    rex::setProperty('user', $user(true));
+    assert(PickerBoot::staleStates($unknown) === [999999 => 'missing'], 'admins with a provider see stale previews');
+    assert(PickerBoot::staleStates([]) === [], 'nothing stale, no nudge');
+    rex::setProperty('user', $user(false));
+    assert(PickerBoot::staleStates($unknown) === [], 'editors never see the nudge');
+    rex::setProperty('user', $user(true));
+    $gateAddon->setConfig('picker_provider', 'none');
+    assert(PickerBoot::staleStates($unknown) === [], 'no nudge without a provider');
+    $gateAddon->setConfig(['picker_provider' => 'codex', 'picker' => '']);
+    assert(PickerBoot::staleStates($unknown) === [], 'no nudge with the picker off');
+} finally {
+    rex::setProperty('user', $gateUser);
+    foreach ($gateSaved as $k => [$exists, $value]) {
+        $exists ? $gateAddon->setConfig($k, $value) : $gateAddon->removeConfig($k);
+    }
+}
 
 $addon = rex_addon::get('block_peek');
 $hadPath = $addon->hasConfig('picker_php_path');

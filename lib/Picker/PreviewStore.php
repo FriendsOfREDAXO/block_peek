@@ -33,15 +33,16 @@ final class PreviewStore
      *
      * @param array{input:string, output:string} $module
      * @param array<string, mixed>|null $entry
+     * @param array<string, string> $hashes see Sources::changed()
      */
-    public static function state(array $module, ?array $entry, bool $hasSvg, ?string $base = null): string
+    public static function state(array $module, ?array $entry, bool $hasSvg, ?string $base = null, array &$hashes = []): string
     {
         return match (true) {
             ($entry['status'] ?? '') === 'failed' => 'failed',
             $entry === null || !$hasSvg => 'missing',
             ($entry['hash'] ?? '') !== self::hash($module['input'], $module['output']),
             !is_array($entry['sources'] ?? null), // generated before sources were tracked: regenerate once
-            Sources::changed($entry['sources'], $base) => 'outdated',
+            Sources::changed($entry['sources'], $base, null, $hashes) => 'outdated',
             default => 'current',
         };
     }
@@ -54,9 +55,10 @@ final class PreviewStore
     {
         $all = $this->all();
         $states = [];
+        $hashes = [];
         foreach ($modules as $module) {
             $slug = self::slug($module['id'], $module['key']);
-            $state = self::state($module, $all[$slug] ?? null, is_file($this->svgPath($slug)), $base);
+            $state = self::state($module, $all[$slug] ?? null, is_file($this->svgPath($slug)), $base, $hashes);
             if ($state !== 'current') {
                 $states[$module['id']] = $state;
             }

@@ -138,6 +138,7 @@ final class PreviewGenerator
                             'description' => $old['description'] ?? '', 'locked' => (bool) ($old['locked'] ?? false),
                             'hash' => $old['hash'] ?? '', 'model' => $old['model'] ?? '',
                             'generated' => $old['generated'] ?? 0, 'status' => 'failed',
+                            'sources' => is_array($old['sources'] ?? null) ? $old['sources'] : [],
                         ], null);
                     } catch (Throwable $writeError) {
                         $message .= '; unable to record failure: ' . $writeError->getMessage();

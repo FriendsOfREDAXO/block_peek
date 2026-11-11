@@ -83,6 +83,13 @@ try {
     $kept = $s->get($slug)['sources'];
     (new G(new CliProvider($fake, '{bin} garbage', 'stdout', 'm', 'e'), $s))->run($id, true, $logger);
     assert($s->get($slug)['sources'] === $kept, 'failed runs keep the previous sources');
+    $throwing = new class implements Provider {
+        public function generate(string $prompt, ?string $imagePath): string { return ''; }
+        public function label(): string { return 'throwing'; }
+        public function inlineContext(): bool { throw new RuntimeException('boom'); }
+    };
+    assert((new G($throwing, $s))->run($id, true, $logger)['failed'] === 1);
+    assert($s->get($slug)['status'] === 'failed' && $s->get($slug)['sources'] === $kept, 'unexpected failures keep the previous sources too');
 
     foreach (['ok', 'garbage'] as $mode) {
         $s->setDescription($slug, 'Before run', false);
