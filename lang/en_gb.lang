@@ -91,5 +91,7 @@ block_peek_picker_current = current
 block_peek_picker_locked = locked
 block_peek_picker_lock_all = Lock all
 block_peek_picker_lock_notice = Locked descriptions are kept when previews are (re)generated.
+block_peek_picker_stale_count = Module previews not up to date: {0}
+block_peek_picker_regenerate = Regenerate
 block_peek_picker_save = Save
 block_peek_picker_running = Generation is already running. Descriptions can be edited again after it finishes.

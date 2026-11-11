@@ -28,11 +28,35 @@ if (rex::isBackend() && PickerBoot::shouldLoad($addon->getConfig('picker'), (str
     ]);
     rex_extension::register('PACKAGES_INCLUDED', static function () {
         try {
-            $store = new PreviewStore();
-            rex_view::setJsProperty('block_peek_picker', $store->forJs(PreviewGenerator::modules()));
+            $modules = PreviewGenerator::modules();
+            rex_view::setJsProperty('block_peek_picker', (new PreviewStore())->forJs($modules));
+            $states = PickerBoot::staleStates($modules);
+            if ($states !== []) {
+                rex_view::setJsProperty('block_peek_picker_stale', [
+                    'states' => (object) $states,
+                    'labels' => array_combine(['outdated', 'missing', 'failed'], array_map(static fn (string $state): string => rex_i18n::msg('block_peek_picker_' . $state), ['outdated', 'missing', 'failed'])),
+                    'text' => rex_i18n::msg('block_peek_picker_stale_count', (string) count($states)),
+                    'link' => rex_i18n::msg('block_peek_picker_regenerate'),
+                    'url' => rex_url::backendPage('block_peek/picker', [], false),
+                ]);
+            }
         } catch (Throwable $e) {
             rex_logger::logException($e);
         }
+    });
+}
+
+// Tell admins on the structure page which module previews need a (re)generation, until all are current.
+if (rex::isBackend() && rex_be_controller::getCurrentPage() === 'structure' && $addon->getConfig('picker') === '|1|' && rex::getUser()?->isAdmin()) {
+    rex_extension::register('PAGE_TITLE_SHOWN', static function (rex_extension_point $ep) {
+        $states = PickerBoot::staleStates();
+        if ($states === []) {
+            return null;
+        }
+        return $ep->getSubject() . rex_view::info(
+            rex_escape(rex_i18n::msg('block_peek_picker_stale_count', (string) count($states)))
+            . ' <a href="' . rex_url::backendPage('block_peek/picker') . '">' . rex_escape(rex_i18n::msg('block_peek_picker_regenerate')) . ' →</a>',
+        );
     });
 }
 

@@ -20,6 +20,9 @@ case "$1" in
     different)
         "$0" ok | sed 's/height=\\"10/height=\\"20/'
         ;;
+    sources)
+        printf '{"description":"Test","svg":"<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 1440 900\\"><rect width=\\"10\\" height=\\"10\\"/></svg>","sources":["%s","../outside.php",7]}\n' "$0"
+        ;;
     garbage) printf '%s\n' 'Sorry, no.' ;;
     badsvg)
         printf '%s\n' '{"description":"Test","svg":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1440 760\"><rect width=\"10\" height=\"10\"/></svg>"}'

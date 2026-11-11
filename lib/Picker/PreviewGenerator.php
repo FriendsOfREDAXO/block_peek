@@ -26,7 +26,9 @@ final class PreviewGenerator
         ], $rows);
     }
 
-    /** @return array{description:string, svg:string}|null */
+    public const SOURCES_INSTRUCTION = 'Also include "sources" in the JSON object: an array of the project files (paths relative to the project root) you read that shaped this preview, such as fragments, templates, classes, CSS and JS. Do not list input.php or output.php, and list source files, not generated build output (e.g. hashed bundles in dist folders).';
+
+    /** @return array{description:string, svg:string, sources:list<string>}|null */
     public static function parse(string $raw): ?array
     {
         $first = strpos($raw, '{');
@@ -34,11 +36,12 @@ final class PreviewGenerator
         if ($first !== false && $last !== false && $last > $first) {
             $data = json_decode(substr($raw, $first, $last - $first + 1), true);
             if (is_array($data) && is_string($data['svg'] ?? null) && is_string($data['description'] ?? null)) {
-                return ['description' => $data['description'], 'svg' => $data['svg']];
+                $sources = is_array($data['sources'] ?? null) ? array_values(array_filter($data['sources'], 'is_string')) : [];
+                return ['description' => $data['description'], 'svg' => $data['svg'], 'sources' => $sources];
             }
         }
         $svg = SvgValidator::extract($raw);
-        return $svg === null ? null : ['description' => '', 'svg' => $svg];
+        return $svg === null ? null : ['description' => '', 'svg' => $svg, 'sources' => []];
     }
 
     /** @return array{generated:int, skipped:int, failed:int} */
@@ -69,7 +72,7 @@ final class PreviewGenerator
                 $hash = PreviewStore::hash($module['input'], $module['output']);
                 try {
                     $old = $this->store->get($slug);
-                    if (!$force && ($old['status'] ?? '') === 'ok' && ($old['hash'] ?? '') === $hash && $this->store->svg($slug) !== null) {
+                    if (!$force && PreviewStore::state($module, $old, $this->store->svg($slug) !== null) === 'current') {
                         ++$counts['skipped'];
                         $report($module['name'] . ': skipped');
                         continue;
@@ -88,7 +91,7 @@ final class PreviewGenerator
                         'style_reference' => $this->store->svg((string) $addon->getConfig('picker_style_module', '')) ?? '',
                         'reference_image' => $image ?? '',
                         'language' => (string) ($addon->getConfig('picker_language', '') ?: rex::getProperty('lang')),
-                    ]);
+                    ]) . "\n\n" . self::SOURCES_INSTRUCTION; // appended in code so custom prompts ask for sources too
                     if ($this->provider->inlineContext()) {
                         $prompt .= "\n\nThe files below are included inline and replace the file reads described above. Do not try to read files.\n\n" . ContextInliner::inline(ContextInliner::files($dir, $globs));
                     }
@@ -120,6 +123,7 @@ final class PreviewGenerator
                         'model' => $result === null ? ($old['model'] ?? '') : $this->provider->label(),
                         'generated' => $result === null ? ($old['generated'] ?? 0) : time(),
                         'status' => $result === null ? 'failed' : 'ok',
+                        'sources' => $result === null ? (is_array($old['sources'] ?? null) ? $old['sources'] : []) : Sources::collect($result['sources']),
                     ];
                     $this->store->put($slug, $entry, $result['svg'] ?? null);
                     ++$counts[$result === null ? 'failed' : 'generated'];
@@ -134,6 +138,7 @@ final class PreviewGenerator
                             'description' => $old['description'] ?? '', 'locked' => (bool) ($old['locked'] ?? false),
                             'hash' => $old['hash'] ?? '', 'model' => $old['model'] ?? '',
                             'generated' => $old['generated'] ?? 0, 'status' => 'failed',
+                            'sources' => is_array($old['sources'] ?? null) ? $old['sources'] : [],
                         ], null);
                     } catch (Throwable $writeError) {
                         $message .= '; unable to record failure: ' . $writeError->getMessage();

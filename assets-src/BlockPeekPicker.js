@@ -37,6 +37,19 @@
 		search.className = "bp-picker-search form-control";
 		search.placeholder = window.rex.block_peek_picker_i18n?.search_placeholder ?? "Modul suchen …";
 		bar.append(label, search);
+		// Admins only (set server-side): previews that are outdated, missing or failed.
+		const stale = window.rex.block_peek_picker_stale;
+		if (stale) {
+			const notice = document.createElement("p");
+			notice.className = "bp-picker-stale";
+			const text = document.createElement("span");
+			text.textContent = stale.text;
+			const regenerate = document.createElement("a");
+			regenerate.href = stale.url;
+			regenerate.textContent = `${stale.link} →`;
+			notice.append(text, regenerate);
+			panel.append(notice);
+		}
 		panel.append(bar);
 
 		const body = document.createElement("div");
@@ -86,6 +99,16 @@
 			const name = document.createElement("div");
 			name.className = "bp-picker-name";
 			name.textContent = link.textContent.trim().replace(/^[–-]\s*/, "");
+			const state = moduleId && stale?.states[moduleId];
+			if (state) {
+				const dot = document.createElement("span");
+				dot.className = "bp-picker-dot";
+				// Label via attributes only: row text feeds the search filter.
+				dot.title = stale.labels[state];
+				dot.setAttribute("role", "img");
+				dot.setAttribute("aria-label", stale.labels[state]);
+				name.append(dot);
+			}
 			const description = document.createElement("div");
 			description.className = "bp-picker-desc";
 			description.textContent = preview?.description || "";

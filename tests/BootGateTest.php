@@ -17,6 +17,35 @@ assert(!PickerBoot::shouldLoad('|1|', 'structure', true));
 assert(!PickerBoot::shouldLoad('|1|', 'content/edit', false));
 assert((new ReflectionMethod(PickerBoot::class, 'shouldLoad'))->getNumberOfParameters() === 3, 'iframe inactivity is not a picker gate input');
 
+// The nudge gate itself: picker on, admin, provider available, something stale.
+$gateAddon = rex_addon::get('block_peek');
+$gateKeys = ['picker', 'picker_provider', 'picker_cli_path'];
+$gateSaved = array_map(static fn (string $k): array => [$gateAddon->hasConfig($k), $gateAddon->getConfig($k)], array_combine($gateKeys, $gateKeys));
+$gateUser = rex::getProperty('user');
+$user = static fn (bool $admin): rex_user => new class(rex_sql::factory(), $admin) extends rex_user {
+    public function __construct(rex_sql $sql, private bool $admin) { parent::__construct($sql); }
+    public function isAdmin(): bool { return $this->admin; }
+};
+$unknown = [['id' => 999999, 'key' => null, 'name' => 'Gate', 'input' => 'i', 'output' => 'o']];
+try {
+    $gateAddon->setConfig(['picker' => '|1|', 'picker_provider' => 'codex', 'picker_cli_path' => rex_path::relative(__DIR__ . '/fixtures/fake-cli.sh')]);
+    rex::setProperty('user', $user(true));
+    assert(PickerBoot::staleStates($unknown) === [999999 => 'missing'], 'admins with a provider see stale previews');
+    assert(PickerBoot::staleStates([]) === [], 'nothing stale, no nudge');
+    rex::setProperty('user', $user(false));
+    assert(PickerBoot::staleStates($unknown) === [], 'editors never see the nudge');
+    rex::setProperty('user', $user(true));
+    $gateAddon->setConfig('picker_provider', 'none');
+    assert(PickerBoot::staleStates($unknown) === [], 'no nudge without a provider');
+    $gateAddon->setConfig(['picker_provider' => 'codex', 'picker' => '']);
+    assert(PickerBoot::staleStates($unknown) === [], 'no nudge with the picker off');
+} finally {
+    rex::setProperty('user', $gateUser);
+    foreach ($gateSaved as $k => [$exists, $value]) {
+        $exists ? $gateAddon->setConfig($k, $value) : $gateAddon->removeConfig($k);
+    }
+}
+
 $addon = rex_addon::get('block_peek');
 $hadPath = $addon->hasConfig('picker_php_path');
 $oldPath = $addon->getConfig('picker_php_path');
@@ -161,7 +190,7 @@ try {
     $entries = $store->all();
     unset($entries[$slug]);
     rex_file::put($indexPath, json_encode($entries, JSON_THROW_ON_ERROR));
-    $_POST = ['picker_action' => 'save', 'picker_slug' => $slug, 'picker_description' => '<script>alert(1)</script>', 'picker_locked' => '1'];
+    $_POST = ['picker_action' => 'save', 'picker_description' => [$slug => '<script>alert(1)</script>'], 'picker_locked' => [$slug => '1'], 'picker_original' => [$slug => ''], 'picker_original_locked' => [$slug => '']];
     $_REQUEST = [rex_csrf_token::PARAM => 'invalid'];
     $render->call($addon, 'picker');
     assert(str_contains((string) \BlockPeekTests\rex_response::$redirect, 'picker_message=csrf_error'), 'invalid POST must redirect to GET');
@@ -170,6 +199,13 @@ try {
     $html = $render->call($addon, 'picker');
     assert($store->get($slug)['description'] === '<script>alert(1)</script>' && $store->get($slug)['locked']);
     assert(str_contains((string) \BlockPeekTests\rex_response::$redirect, 'picker_message=saved'), 'save POST must redirect to GET');
+    // A stale tab only writes what it changed: here the lock, not its outdated description.
+    $saved = $store->get($slug);
+    $store->put($slug, ['description' => 'Fresh'] + $saved, null);
+    $_POST = ['picker_action' => 'save', 'picker_description' => [$slug => $saved['description']], 'picker_original' => [$slug => $saved['description']], 'picker_original_locked' => [$slug => '1']];
+    $render->call($addon, 'picker');
+    assert($store->get($slug)['description'] === 'Fresh' && $store->get($slug)['locked'] === false, 'stale tab must not revert a newer description');
+    $store->put($slug, $saved, null);
     $_POST = [];
     $_GET = ['picker_message' => 'saved'];
     $html = $render->call($addon, 'picker');
@@ -200,7 +236,7 @@ try {
     $beforeSave = $store->get($slug);
     $_REQUEST = [rex_csrf_token::PARAM => rex_csrf_token::factory('block_peek_picker')->getValue()];
     foreach (['save', 'generate', 'force'] as $action) {
-        $_POST = ['picker_action' => $action, 'picker_slug' => $slug, 'picker_description' => 'Rejected'];
+        $_POST = ['picker_action' => $action, 'picker_description' => [$slug => 'Rejected'], 'picker_original' => [$slug => '']];
         $render->call($addon, 'picker');
         assert(str_contains((string) \BlockPeekTests\rex_response::$redirect, 'picker_message=running'), "$action during a run must redirect with a running message");
         assert($store->get($slug) === $beforeSave, 'running saves must not edit descriptions');

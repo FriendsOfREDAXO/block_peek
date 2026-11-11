@@ -20,7 +20,7 @@ final class rex_response
 
 function pickerPageSource(string $path): string
 {
-    return 'namespace BlockPeekTests; use \rex, \rex_addon, \rex_view, \rex_escape, \rex_i18n, \rex_url, \rex_csrf_token, \rex_logger, \Throwable;'
+    return 'namespace BlockPeekTests; use \rex, \rex_addon, \rex_view, \rex_escape, \rex_i18n, \rex_url, \rex_csrf_token, \rex_logger, \rex_fragment, \Throwable;'
         . substr(file_get_contents($path), 5);
 }
 

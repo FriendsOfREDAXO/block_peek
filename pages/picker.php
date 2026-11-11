@@ -148,12 +148,7 @@ ob_start();
             $slug = PreviewStore::slug($module['id'], $module['key']);
             $preview = $previews[$slug] ?? null;
             $svg = $store->svg($slug);
-            $state = match (true) {
-                ($preview['status'] ?? '') === 'failed' => 'failed',
-                $preview === null || $svg === null => 'missing',
-                ($preview['hash'] ?? '') !== PreviewStore::hash($module['input'], $module['output']) => 'outdated',
-                default => 'current',
-            };
+            $state = PreviewStore::state($module, $preview, $svg !== null);
             $id = 'bp-desc-' . rex_escape($slug);
             ?>
             <tr>
