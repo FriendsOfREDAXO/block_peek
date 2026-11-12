@@ -96,6 +96,10 @@ Deployer-Beispiel für einen bereits konfigurierten lokalen Build-Host `local`, 
 task('block_peek:previews', static function () {
     on(host('local'), static function () {
         $dir = 'var/data/addons/block_peek/previews';
+        if (!str_contains(run('bin/console list --raw'), 'block_peek:generate')) {
+            info('BlockPeek nicht installiert oder nicht aktiviert, Vorschauen übersprungen.');
+            return;
+        }
         try {
             $output = run('bin/console block_peek:generate', ['timeout' => null]);
             writeln($output);
