@@ -90,11 +90,12 @@ Falls `.gitignore` die Regel `var/data/addons/*/*` enthält, danach freigeben:
 !var/data/addons/block_peek/previews/**
 ```
 
-Deployer-Beispiel für einen bereits konfigurierten lokalen Build-Host `local`, der im REDAXO-Projektverzeichnis arbeitet und das Release lokal vorbereitet. Nach dem Anlegen des Release-Verzeichnisses und vor dessen Upload ausführen; die CLI bleibt auf dem lokalen Host:
+Deployer-Beispiel für einen bereits konfigurierten lokalen Build-Host `local`, der im REDAXO-Projektverzeichnis arbeitet und das Release lokal vorbereitet. Nach dem Anlegen des Release-Verzeichnisses und vor dessen Upload ausführen; die CLI bleibt auf dem lokalen Host. Neue oder geänderte Vorschauen werden anschliessend lokal committet, damit das Arbeitsverzeichnis sauber bleibt:
 
 ```php
 task('block_peek:previews', static function () {
     on(host('local'), static function () {
+        $dir = 'var/data/addons/block_peek/previews';
         try {
             $output = run('bin/console block_peek:generate', ['timeout' => null]);
             writeln($output);
@@ -104,16 +105,23 @@ task('block_peek:previews', static function () {
         } catch (\Throwable $e) {
             warning('BlockPeek: ' . $e->getMessage());
         }
-        if (test('[ -d var/data/addons/block_peek/previews ]')) {
-            run('mkdir -p {{release_path}}/var/data/addons/block_peek');
-            run('cp -R var/data/addons/block_peek/previews {{release_path}}/var/data/addons/block_peek/');
+        if (!test("[ -d $dir ]")) {
+            return;
         }
+        // Nur das Vorschau-Verzeichnis committen, andere (auch gestagte) Änderungen bleiben unberührt; ohne Änderungen kein Commit.
+        try {
+            run("git add -A $dir && (git diff --cached --quiet -- $dir || git commit -q --no-verify -m 'chore: update block_peek previews' -- $dir)");
+        } catch (\Throwable $e) {
+            warning('BlockPeek: Vorschauen nicht committet: ' . $e->getMessage());
+        }
+        run('mkdir -p {{release_path}}/var/data/addons/block_peek');
+        run("cp -R $dir {{release_path}}/var/data/addons/block_peek/");
     });
 });
 after('deploy:update_code', 'block_peek:previews');
 ```
 
-Den Hook an die eigene lokale Build-/Upload-Reihenfolge anpassen. Generierungsfehler warnen, vorhandene Vorschauen werden weiter ins Release kopiert.
+Den Hook an die eigene lokale Build-/Upload-Reihenfolge anpassen. Generierungsfehler warnen, vorhandene Vorschauen werden weiter ins Release kopiert. Der Commit wird nicht gepusht; `--no-verify` verhindert, dass Git-Hooks (z. B. Formatter) die generierten Dateien während des Deployments verändern.
 
 ## Tailwind 4 / `@source` Discovery
 
