@@ -1,5 +1,10 @@
 # Changelog
 
+## **13.11.2026 Version 1.6.0-beta5**
+
+- fix: the module picker writes descriptions in German (`de_de`) when no language is set, instead of following the backend language
+- docs: README deploy recipe commits generated previews and skips projects without block_peek
+
 ## **11.11.2026 Version 1.6.0-beta4**
 
 - feat: previews track the project files the AI used (fragments, templates, CSS/JS); a changed or deleted file marks the preview as outdated, and "Fehlende/veraltete generieren" renews it

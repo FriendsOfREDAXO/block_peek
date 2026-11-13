@@ -1,6 +1,6 @@
 {
   "name": "block_peek-assets",
-  "version": "1.6.0-beta4",
+  "version": "1.6.0-beta5",
   "description": "Asset build for BlockPeek Addon",
   "scripts": {
     "version:sync": "node scripts/sync-version.js",
