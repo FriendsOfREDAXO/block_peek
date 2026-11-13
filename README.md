@@ -66,7 +66,7 @@ Bei jeder Generierung meldet die AI die Projektdateien, auf denen die Vorschau b
 
 ### Prompt und Kontext
 
-`picker_prompt` ist in den Einstellungen editierbar; leer verwendet `templates/picker-prompt.md`, einsehbar über **Standard anzeigen**. Platzhalter: `{module_dir}` (temporäres Verzeichnis mit `input.php` und `output.php`), `{module_name}`, `{context_paths}`, `{style_reference_block}`, `{reference_image_sentence}`, `{language}`. Stilreferenz und Referenzbild lassen sich separat wählen; der Bildpfad ist relativ zum Projektverzeichnis. Eine leere Sprache verwendet `rex::getProperty('lang')`.
+`picker_prompt` ist in den Einstellungen editierbar; leer verwendet `templates/picker-prompt.md`, einsehbar über **Standard anzeigen**. Platzhalter: `{module_dir}` (temporäres Verzeichnis mit `input.php` und `output.php`), `{module_name}`, `{context_paths}`, `{style_reference_block}`, `{reference_image_sentence}`, `{language}`. Stilreferenz und Referenzbild lassen sich separat wählen; der Bildpfad ist relativ zum Projektverzeichnis. Eine leere Sprache verwendet `de_de`.
 
 `picker_context_paths` enthält einen Glob pro Zeile, relativ zum Projektverzeichnis. MASSIF-Defaults:
 

@@ -184,7 +184,7 @@ foreach (['cli_path', 'command', 'model', 'effort', 'language'] as $setting) {
             $field->setAttribute('placeholder', $placeholder);
         }
     } elseif ($setting === 'language') {
-        $field->setAttribute('placeholder', (string) rex::getProperty('lang'));
+        $field->setAttribute('placeholder', 'de_de');
     } elseif ($setting === 'effort') {
         $field->setAttribute('placeholder', 'medium');
     }

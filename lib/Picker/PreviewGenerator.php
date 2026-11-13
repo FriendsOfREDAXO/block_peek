@@ -91,7 +91,7 @@ final class PreviewGenerator
                         'context_paths' => $globs,
                         'style_reference' => $this->store->svg((string) $addon->getConfig('picker_style_module', '')) ?? '',
                         'reference_image' => $image ?? '',
-                        'language' => (string) ($addon->getConfig('picker_language', '') ?: rex::getProperty('lang')),
+                        'language' => (string) ($addon->getConfig('picker_language', '') ?: 'de_de'),
                     ]) . "\n\n" . self::SOURCES_INSTRUCTION; // appended in code so custom prompts ask for sources too
                     if ($this->provider->inlineContext()) {
                         $prompt .= "\n\nThe files below are included inline and replace the file reads described above. Do not try to read files.\n\n" . ContextInliner::inline(ContextInliner::files($dir, $globs));
