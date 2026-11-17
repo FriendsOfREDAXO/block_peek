@@ -1,6 +1,6 @@
 # Changelog
 
-## **Unreleased**
+## **17.11.2026 Version 1.6.0-beta6**
 
 - feat: previews also render in Sprog's side-by-side language comparison (Sprog 2); before, its columns showed the raw module output
 - fix: iframe heights are matched to the iframe that sent them, so a slice shown twice on the page (e.g. in the comparison panel) gets the right height
