@@ -21,7 +21,11 @@
 	function handleIframeMessage(event) {
 		if (event.data?.type !== "resize" || !event.data?.id) return;
 		const id = String(event.data.id);
-		const iframe = document.querySelector(`iframe[data-iframe-preview][data-slice-id="${id}"]`);
+		// Match by sender, not id alone: sprog's language compare panel repeats the
+		// slice list of the current language, so one slice id can exist twice.
+		const iframe = Array.from(document.querySelectorAll(`iframe[data-iframe-preview][data-slice-id="${id}"]`)).find(
+			(el) => el.contentWindow === event.source,
+		);
 		if (!iframe) return;
 		const wrapper = iframe.parentElement;
 		const zoomFactor = parseFloat(wrapper.dataset.zoomFactor) || 0.5;

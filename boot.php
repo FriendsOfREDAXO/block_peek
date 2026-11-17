@@ -8,11 +8,16 @@ use FriendsOfRedaxo\BlockPeek\Picker\PreviewStore;
 /** @var rex_addon_interface $addon */
 $addon = $this;
 
-if ($addon->getConfig('inactive') !== '|1|') {
+if ($addon->getConfig('inactive') !== '|1|' && rex::isBackend() && rex::getUser()) {
+    $page = rex_be_controller::getCurrentPage();
     // Previews only exist on content/edit — don't load assets on every backend page.
-    if (rex::isBackend() && rex::getUser() && rex_be_controller::getCurrentPage() === 'content/edit') {
+    if ($page === 'content/edit') {
         rex_view::addJsFile($this->getAssetsUrl('BlockPeek.js'));
         rex_view::addCssFile($this->getAssetsUrl('BlockPeek.css'));
+    }
+    // sprog's language compare panel fetches its slice columns from its own AJAX page and
+    // inserts them into content/edit, where the assets above are already loaded.
+    if ($page === 'content/edit' || $page === 'sprog.langcompare') {
         rex_extension::register('PACKAGES_INCLUDED', function () {
             rex_extension::register('SLICE_BE_PREVIEW', \FriendsOfRedaxo\BlockPeek\Extension::register(...), rex_extension::LATE);
         });

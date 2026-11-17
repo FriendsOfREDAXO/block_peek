@@ -14,6 +14,7 @@ Ausserdem sollte der Slice-Output modular aufgebaut sein, damit die Vorschau auc
 - Iframe-basierte Darstellung der Vorschau
 - Anpassbare Iframe-Größe und Zoom-Faktor
 - Caching der generierten Vorschauen zur Performance-Optimierung
+- Funktioniert auch im Seite-an-Seite-Sprachvergleich von Sprog 2
 - Extension Point `BLOCK_PEEK_OUTPUT` zur weiteren Anpassung der Ausgabe
 - Extension Point `BLOCK_PEEK_SLICE_ENABLED`, um die Vorschau für einzelne Slices abzuschalten
 
